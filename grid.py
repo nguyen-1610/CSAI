@@ -1,15 +1,83 @@
-"""
-grid.py — Grid Helpers + Maze Generation
-=========================================
-Chứa:
-  - in_bounds(r, c)          — kiểm tra ô nằm trong grid
-  - get_neighbors(r, c)      — trả về các ô lân cận hợp lệ (không phải wall)
-  - heuristic(a, b)          — Manhattan distance
-  - reconstruct_path(cf, n)  — dựng path từ came_from dict
-  - next_id()                — tie-breaker counter cho heapq
-  - generate_maze()          — tạo mê cung bằng recursive division
+import random
+from config import ROWS, COLS, DIRS, state
 
-Import từ: config (ROWS, COLS, DIRS, state)
-Được import bởi: algorithms/*.py, gui.py
-"""
+# ─────────────────────────────────────────────
+# GRID HELPERS
+# ─────────────────────────────────────────────
+def in_bounds(r, c):
+    return 0 <= r < ROWS and 0 <= c < COLS
 
+def get_neighbors(r, c):
+    """
+    Trả về danh sách các ô (r, c) hợp lệ xung quanh.
+    Lưu ý: Nó truy cập trực tiếp state.walls từ config để biết ô nào là tường.
+    """
+    return [
+        (r + dr, c + dc)
+        for dr, dc in DIRS
+        if in_bounds(r + dr, c + dc) and (r + dr, c + dc) not in state.walls
+    ]
+
+def heuristic(a, b):
+    """Tính khoảng cách Manhattan giữa 2 điểm (dành cho A*, Greedy)."""
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+def reconstruct_path(came_from, node):
+    """Lần ngược từ node đích về node bắt đầu để tạo đường đi."""
+    path = []
+    while node is not None:
+        path.append(node)
+        node = came_from.get(node)
+    return list(reversed(path))
+
+def next_id():
+    """Hỗ trợ tie-breaking cho heapq khi 2 node có cùng cost."""
+    state._counter[0] += 1
+    return state._counter[0]
+
+
+# ─────────────────────────────────────────────
+# MAZE GENERATION  (Recursive Division)
+# ─────────────────────────────────────────────
+def generate_maze():
+    state.walls = set()
+    # Tạo tường bao quanh (viền ngoài)
+    for r in range(ROWS):
+        state.walls.add((r, 0))
+        state.walls.add((r, COLS - 1))
+    for c in range(COLS):
+        state.walls.add((0, c))
+        state.walls.add((ROWS - 1, c))
+
+    def divide(r1, c1, r2, c2):
+        w = c2 - c1
+        h = r2 - r1
+        if w < 2 or h < 2:
+            return
+        horizontal = h > w if h != w else random.random() < 0.5
+
+        if horizontal:
+            wr = random.randrange(r1 + 1, r2)
+            pc = random.randrange(c1, c2 + 1)
+            for c in range(c1, c2 + 1):
+                if c != pc:
+                    state.walls.add((wr, c))
+            divide(r1, c1, wr - 1, c2)
+            divide(wr + 1, c1, r2, c2)
+        else:
+            wc = random.randrange(c1 + 1, c2)
+            pr = random.randrange(r1, r2 + 1)
+            for r in range(r1, r2 + 1):
+                if r != pr:
+                    state.walls.add((r, wc))
+            divide(r1, c1, r2, wc - 1)
+            divide(r1, wc + 1, r2, c2)
+
+    # Bắt đầu chia từ ô bên trong (chừa viền ngoài)
+    divide(1, 1, ROWS - 2, COLS - 2)
+
+    # Đảm bảo khu vực xung quanh điểm Bắt đầu và Kết thúc trống trải
+    for dr in range(-1, 2):
+        for dc in range(-1, 2):
+            state.walls.discard((state.start_cell[0] + dr, state.start_cell[1] + dc))
+            state.walls.discard((state.end_cell[0]   + dr, state.end_cell[1]   + dc))

@@ -1,10 +1,12 @@
-#!/usr/bin/env python3
-"""
-========================================================
- Maze Pathfinding Visualizer — AI Lab 1
- Search Algorithms: BFS, DFS, UCS, A*, IDDFS,
-                    Bidirectional BFS, Beam Search, IDA*
-========================================================
-Entry point — chạy file này để khởi động app.
-"""
+import pygame
+import sys
 
+# Khởi tạo Pygame
+pygame.init()
+
+# Import vòng lặp chính từ gui
+from gui import run
+
+if __name__ == "__main__":
+    # Bắt đầu chương trình
+    run()
