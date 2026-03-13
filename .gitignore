@@ -1,0 +1,23 @@
+# Thư mục môi trường ảo (Quan trọng nhất)
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode (Các file chạy tạm của Python)
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Thư mục phân phối / gói (Nếu bạn đóng gói thư viện)
+dist/
+build/
+*.egg-info/
+
+# File cấu hình của trình soạn thảo (VS Code, PyCharm)
+.vscode/
+.idea/
+
+# File log và dữ liệu tạm
+*.log
+.DS_Store (cho Mac)
