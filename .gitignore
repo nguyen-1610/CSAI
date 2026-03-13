@@ -20,4 +20,4 @@ build/
 
 # File log và dữ liệu tạm
 *.log
-.DS_Store (cho Mac)
+.DS_Store
