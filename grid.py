@@ -57,16 +57,24 @@ def generate_maze():
         horizontal = h > w if h != w else random.random() < 0.5
 
         if horizontal:
-            wr = random.randrange(r1 + 1, r2)
-            pc = random.randrange(c1, c2 + 1)
+            # Đặt tường ở hàng chẵn (tính từ r1) để đảm bảo parity
+            wall_rows = list(range(r1 + 1, r2, 2)) or [r1 + 1]
+            wr = random.choice(wall_rows)
+            # Mở lối đi ở cột lẻ (tính từ c1)
+            pass_cols = list(range(c1, c2 + 1, 2)) or [random.randrange(c1, c2 + 1)]
+            pc = random.choice(pass_cols)
             for c in range(c1, c2 + 1):
                 if c != pc:
                     state.walls.add((wr, c))
             divide(r1, c1, wr - 1, c2)
             divide(wr + 1, c1, r2, c2)
         else:
-            wc = random.randrange(c1 + 1, c2)
-            pr = random.randrange(r1, r2 + 1)
+            # Đặt tường ở cột chẵn (tính từ c1) để đảm bảo parity
+            wall_cols = list(range(c1 + 1, c2, 2)) or [c1 + 1]
+            wc = random.choice(wall_cols)
+            # Mở lối đi ở hàng lẻ (tính từ r1)
+            pass_rows = list(range(r1, r2 + 1, 2)) or [random.randrange(r1, r2 + 1)]
+            pr = random.choice(pass_rows)
             for r in range(r1, r2 + 1):
                 if r != pr:
                     state.walls.add((r, wc))
@@ -77,7 +85,12 @@ def generate_maze():
     divide(1, 1, ROWS - 2, COLS - 2)
 
     # Đảm bảo khu vực xung quanh điểm Bắt đầu và Kết thúc trống trải
+    # Lưu ý: chỉ xóa các ô bên TRONG viền (không đụng đến border)
     for dr in range(-1, 2):
         for dc in range(-1, 2):
-            state.walls.discard((state.start_cell[0] + dr, state.start_cell[1] + dc))
-            state.walls.discard((state.end_cell[0]   + dr, state.end_cell[1]   + dc))
+            sr, sc = state.start_cell[0] + dr, state.start_cell[1] + dc
+            er, ec = state.end_cell[0]   + dr, state.end_cell[1]   + dc
+            if 0 < sr < ROWS - 1 and 0 < sc < COLS - 1:
+                state.walls.discard((sr, sc))
+            if 0 < er < ROWS - 1 and 0 < ec < COLS - 1:
+                state.walls.discard((er, ec))
