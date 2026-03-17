@@ -8,7 +8,7 @@ chỉ cần vào đây import và thêm vào list REGISTRY.
 # (Mở comment khi các file .py tương ứng đã được tạo)
 
 # from algorithms.bfs import algo_bfs
-# from algorithms.dfs import algo_dfs
+from algorithms.dfs import algo_dfs
 # from algorithms.ucs import algo_ucs
 # from algorithms.astar import algo_astar
 # from algorithms.iddfs import algo_iddfs
@@ -22,7 +22,7 @@ chỉ cần vào đây import và thêm vào list REGISTRY.
 
 REGISTRY = [
     # {"name": "BFS",   "full": "Breadth-First Search",        "func": algo_bfs},
-    # {"name": "DFS",   "full": "Depth-First Search",          "func": algo_dfs},
+    {"name": "DFS",   "full": "Depth-First Search",          "func": algo_dfs},
     # {"name": "UCS",   "full": "Uniform Cost Search",         "func": algo_ucs},
     # {"name": "A*",    "full": "A* (Manhattan heuristic)",    "func": algo_astar},
     # {"name": "IDDFS", "full": "Iterative Deepening DFS",     "func": algo_iddfs},
