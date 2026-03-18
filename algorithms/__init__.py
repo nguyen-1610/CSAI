@@ -11,7 +11,7 @@ chỉ cần vào đây import và thêm vào list REGISTRY.
 from algorithms.dfs import algo_dfs
 # from algorithms.ucs import algo_ucs
 from algorithms.astar import algo_astar
-# from algorithms.iddfs import algo_iddfs
+from algorithms.iddfs import algo_iddfs
 # from algorithms.bidirectional import algo_bidirectional
 # from algorithms.beam import algo_beam
 # from algorithms.idastar import algo_idastar
@@ -25,7 +25,7 @@ REGISTRY = [
     {"name": "DFS",   "full": "Depth-First Search",          "func": algo_dfs},
     # {"name": "UCS",   "full": "Uniform Cost Search",         "func": algo_ucs},
     {"name": "A*",    "full": "A* (Manhattan heuristic)",    "func": algo_astar},
-    # {"name": "IDDFS", "full": "Iterative Deepening DFS",     "func": algo_iddfs},
+    {"name": "IDDFS", "full": "Iterative Deepening DFS",     "func": algo_iddfs},
     # {"name": "Bidir.", "full": "Bidirectional BFS",          "func": algo_bidirectional},
     # {"name": "Beam",  "full": "Beam Search  (width=8)",      "func": algo_beam},
     # {"name": "IDA*",  "full": "Iterative Deepening A*",      "func": algo_idastar},
