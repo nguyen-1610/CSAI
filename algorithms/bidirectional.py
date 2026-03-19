@@ -37,6 +37,7 @@ def algo_bidirectional():
                         meeting = nb
                         break
             if meeting:
+                yield (set(fwd_visited) | set(bwd_visited)).copy(), set()
                 break
 
         # --- Backward step ---
@@ -50,6 +51,7 @@ def algo_bidirectional():
                         meeting = nb
                         break
             if meeting:
+                yield (set(fwd_visited) | set(bwd_visited)).copy(), set()
                 break
 
         visited_all = set(fwd_visited) | set(bwd_visited)
