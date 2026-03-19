@@ -7,28 +7,51 @@ chỉ cần vào đây import và thêm vào list REGISTRY.
 # 1. IMPORT CÁC THUẬT TOÁN Ở ĐÂY
 # (Mở comment khi các file .py tương ứng đã được tạo)
 
-# from algorithms.bfs import algo_bfs
+# from algorithms.bfs import algo_bfs          # chờ team member
 from algorithms.dfs import algo_dfs
-# from algorithms.ucs import algo_ucs
+# from algorithms.ucs import algo_ucs          # chờ team member
 from algorithms.astar import algo_astar
 from algorithms.iddfs import algo_iddfs
-# from algorithms.bidirectional import algo_bidirectional
-# from algorithms.beam import algo_beam
-# from algorithms.idastar import algo_idastar
+from algorithms.bidirectional import algo_bidirectional
+# from algorithms.beam import algo_beam        # chờ team member
+from algorithms.idastar import algo_idastar
+
+
+# ── Placeholder cho thuật toán chưa có file ──────────────────────────────────
+def _placeholder_bfs():
+    from config import state
+    state.finished = True
+    return
+    yield  # noqa: unreachable — makes this a generator
+
+
+def _placeholder_ucs():
+    from config import state
+    state.finished = True
+    return
+    yield
+
+
+def _placeholder_beam():
+    from config import state
+    state.finished = True
+    return
+    yield
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 # 2. ĐĂNG KÝ THUẬT TOÁN VÀO DANH SÁCH NÀY
 # Hệ thống GUI sẽ tự động đọc danh sách này để tạo các nút bấm trên màn hình.
 
 REGISTRY = [
-    # {"name": "BFS",   "full": "Breadth-First Search",        "func": algo_bfs},
-    {"name": "DFS",   "full": "Depth-First Search",          "func": algo_dfs},
-    # {"name": "UCS",   "full": "Uniform Cost Search",         "func": algo_ucs},
-    {"name": "A*",    "full": "A* (Manhattan heuristic)",    "func": algo_astar},
-    {"name": "IDDFS", "full": "Iterative Deepening DFS",     "func": algo_iddfs},
-    # {"name": "Bidir.", "full": "Bidirectional BFS",          "func": algo_bidirectional},
-    # {"name": "Beam",  "full": "Beam Search  (width=8)",      "func": algo_beam},
-    # {"name": "IDA*",  "full": "Iterative Deepening A*",      "func": algo_idastar},
+    {"name": "BFS",    "full": "Breadth-First Search",      "func": _placeholder_bfs},
+    {"name": "DFS",    "full": "Depth-First Search",         "func": algo_dfs},
+    {"name": "UCS",    "full": "Uniform Cost Search",        "func": _placeholder_ucs},
+    {"name": "A*",     "full": "A* (Manhattan heuristic)",   "func": algo_astar},
+    {"name": "IDDFS",  "full": "Iterative Deepening DFS",    "func": algo_iddfs},
+    {"name": "Bidir.", "full": "Bidirectional BFS",          "func": algo_bidirectional},
+    {"name": "Beam",   "full": "Beam Search (width=8)",      "func": _placeholder_beam},
+    {"name": "IDA*",   "full": "Iterative Deepening A*",     "func": algo_idastar},
 ]
 
 
