@@ -10,10 +10,10 @@ W, H   = 1180, 730
 ROWS   = 28
 COLS   = 40
 CELL   = 17          # pixels per cell
-GX     = 8           # grid left offset
-GY     = 54          # grid top  offset
-PX     = GX + COLS * CELL + 16   # panel left edge
-PW     = W - PX - 8              # panel width
+PX     = 8                        # panel left edge
+PW     = 468                      # panel width
+GX     = PX + PW + 8             # grid left offset  (= 484)
+GY     = 54                       # grid top  offset
 
 # ─────────────────────────────────────────────
 # COLOR PALETTE

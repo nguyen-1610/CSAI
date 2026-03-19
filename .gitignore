@@ -6,6 +6,7 @@ ENV/
 
 # Python bytecode (Các file chạy tạm của Python)
 **/__pycache__/
+*.pyc
 *.py[cod]
 *$py.class
 
