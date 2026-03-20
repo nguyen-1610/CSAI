@@ -32,6 +32,7 @@ def algo_ucs():
             # cost ở đây là tổng chi phí thực tế (g-cost), chính xác hơn len(p)-1
             state.stats.update(nodes=len(visited), path=len(p),
                                cost=cost, time=time.perf_counter()-t0, found=True)
+            state.came_from = came_from
             state.finished = True
             return
 
@@ -48,4 +49,5 @@ def algo_ucs():
         yield visited.copy(), frontier
 
     state.stats.update(nodes=len(visited), found=False, time=time.perf_counter()-t0)
+    state.came_from = came_from
     state.finished = True

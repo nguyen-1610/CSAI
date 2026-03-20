@@ -12,6 +12,7 @@ def algo_bidirectional():
         state.path_cells = [s]
         state.stats.update(nodes=1, path=1, cost=0,
                            time=time.perf_counter() - t0, found=True)
+        state.came_from = {s: None}
         state.finished = True
         return
 
@@ -79,10 +80,12 @@ def algo_bidirectional():
         state.path_cells = p
         state.stats.update(nodes=len(visited_all), path=len(p),
                            cost=len(p) - 1, time=time.perf_counter() - t0, found=True)
+        state.came_from = fwd_visited
         state.finished = True
         return
 
     visited_all = set(fwd_visited) | set(bwd_visited)
     state.stats.update(nodes=len(visited_all), found=False,
                        time=time.perf_counter() - t0)
+    state.came_from = fwd_visited
     state.finished = True

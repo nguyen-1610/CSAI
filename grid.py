@@ -1,11 +1,11 @@
 import random
-from config import ROWS, COLS, DIRS, state
+from config import DIRS, state
 
 # ─────────────────────────────────────────────
 # GRID HELPERS
 # ─────────────────────────────────────────────
 def in_bounds(r, c):
-    return 0 <= r < ROWS and 0 <= c < COLS
+    return 0 <= r < state.rows and 0 <= c < state.cols
 
 def get_neighbors(r, c):
     """
@@ -40,14 +40,15 @@ def next_id():
 # MAZE GENERATION  (Recursive Division)
 # ─────────────────────────────────────────────
 def generate_maze():
+    rows, cols = state.rows, state.cols
     state.walls = set()
     # Tạo tường bao quanh (viền ngoài)
-    for r in range(ROWS):
+    for r in range(rows):
         state.walls.add((r, 0))
-        state.walls.add((r, COLS - 1))
-    for c in range(COLS):
+        state.walls.add((r, cols - 1))
+    for c in range(cols):
         state.walls.add((0, c))
-        state.walls.add((ROWS - 1, c))
+        state.walls.add((rows - 1, c))
 
     def divide(r1, c1, r2, c2):
         w = c2 - c1
@@ -57,10 +58,8 @@ def generate_maze():
         horizontal = h > w if h != w else random.random() < 0.5
 
         if horizontal:
-            # Đặt tường ở hàng chẵn (tính từ r1) để đảm bảo parity
             wall_rows = list(range(r1 + 1, r2, 2)) or [r1 + 1]
             wr = random.choice(wall_rows)
-            # Mở lối đi ở cột lẻ (tính từ c1)
             pass_cols = list(range(c1, c2 + 1, 2)) or [random.randrange(c1, c2 + 1)]
             pc = random.choice(pass_cols)
             for c in range(c1, c2 + 1):
@@ -69,10 +68,8 @@ def generate_maze():
             divide(r1, c1, wr - 1, c2)
             divide(wr + 1, c1, r2, c2)
         else:
-            # Đặt tường ở cột chẵn (tính từ c1) để đảm bảo parity
             wall_cols = list(range(c1 + 1, c2, 2)) or [c1 + 1]
             wc = random.choice(wall_cols)
-            # Mở lối đi ở hàng lẻ (tính từ r1)
             pass_rows = list(range(r1, r2 + 1, 2)) or [random.randrange(r1, r2 + 1)]
             pr = random.choice(pass_rows)
             for r in range(r1, r2 + 1):
@@ -81,16 +78,13 @@ def generate_maze():
             divide(r1, c1, r2, wc - 1)
             divide(r1, wc + 1, r2, c2)
 
-    # Bắt đầu chia từ ô bên trong (chừa viền ngoài)
-    divide(1, 1, ROWS - 2, COLS - 2)
+    divide(1, 1, rows - 2, cols - 2)
 
-    # Đảm bảo khu vực xung quanh điểm Bắt đầu và Kết thúc trống trải
-    # Lưu ý: chỉ xóa các ô bên TRONG viền (không đụng đến border)
     for dr in range(-1, 2):
         for dc in range(-1, 2):
             sr, sc = state.start_cell[0] + dr, state.start_cell[1] + dc
             er, ec = state.end_cell[0]   + dr, state.end_cell[1]   + dc
-            if 0 < sr < ROWS - 1 and 0 < sc < COLS - 1:
+            if 0 < sr < rows - 1 and 0 < sc < cols - 1:
                 state.walls.discard((sr, sc))
-            if 0 < er < ROWS - 1 and 0 < ec < COLS - 1:
+            if 0 < er < rows - 1 and 0 < ec < cols - 1:
                 state.walls.discard((er, ec))

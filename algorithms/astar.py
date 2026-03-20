@@ -27,6 +27,7 @@ def algo_astar():
             state.path_cells = p
             state.stats.update(nodes=len(visited), path=len(p),
                                cost=g_score[e], time=time.perf_counter() - t0, found=True)
+            state.came_from = came_from
             state.finished = True
             return
 
@@ -41,4 +42,5 @@ def algo_astar():
         yield visited.copy(), open_set.copy()
 
     state.stats.update(nodes=len(visited), found=False, time=time.perf_counter() - t0)
+    state.came_from = came_from
     state.finished = True

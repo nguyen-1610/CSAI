@@ -26,6 +26,7 @@ def algo_bfs():
             state.path_cells = p
             state.stats.update(nodes=len(visited), path=len(p),
                                cost=len(p)-1, time=time.perf_counter()-t0, found=True)
+            state.came_from = came_from
             state.finished = True
             return
 
@@ -40,4 +41,5 @@ def algo_bfs():
         yield visited.copy(), set(queue)
 
     state.stats.update(nodes=len(visited), found=False, time=time.perf_counter()-t0)
+    state.came_from = came_from
     state.finished = True

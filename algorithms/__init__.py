@@ -33,14 +33,14 @@ def _placeholder_bfs():
 # Hệ thống GUI sẽ tự động đọc danh sách này để tạo các nút bấm trên màn hình.
 
 REGISTRY = [
-    {"name": "BFS",    "full": "Breadth-First Search",      "func": algo_bfs},
-    {"name": "DFS",    "full": "Depth-First Search",         "func": algo_dfs},
-    {"name": "UCS",    "full": "Uniform Cost Search",        "func": algo_ucs},
-    {"name": "A*",     "full": "A* (Manhattan heuristic)",   "func": algo_astar},
-    {"name": "IDDFS",  "full": "Iterative Deepening DFS",    "func": algo_iddfs},
-    {"name": "Bidir.", "full": "Bidirectional BFS",          "func": algo_bidirectional},
-    {"name": "Beam",   "full": "Beam Search (width=8)",      "func": algo_beam},
-    {"name": "IDA*",   "full": "Iterative Deepening A*",     "func": algo_idastar},
+    {"name": "Breadth-First Search",  "full": "Breadth-First Search",      "func": algo_bfs},
+    {"name": "Depth-First Search",    "full": "Depth-First Search",         "func": algo_dfs},
+    {"name": "Uniform Cost Search",   "full": "Uniform Cost Search",        "func": algo_ucs},
+    {"name": "A* Search",             "full": "A* (Manhattan heuristic)",   "func": algo_astar},
+    {"name": "Iter. Deepening DFS",   "full": "Iterative Deepening DFS",    "func": algo_iddfs},
+    {"name": "Bidirectional BFS",     "full": "Bidirectional BFS",          "func": algo_bidirectional},
+    {"name": "Beam Search",           "full": "Beam Search (width=8)",      "func": algo_beam},
+    {"name": "IDA* Search",           "full": "Iterative Deepening A*",     "func": algo_idastar},
 ]
 
 

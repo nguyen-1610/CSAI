@@ -12,6 +12,7 @@ def algo_idastar():
         state.path_cells = [s]
         state.stats.update(nodes=1, path=1, cost=0,
                            time=time.perf_counter() - t0, found=True)
+        state.came_from = {s: None}
         state.finished = True
         return
 
@@ -68,6 +69,7 @@ def algo_idastar():
             state.path_cells = p
             state.stats.update(nodes=len(total_visited), path=len(p),
                                cost=len(p) - 1, time=time.perf_counter() - t0, found=True)
+            state.came_from = came_from
             state.finished = True
             return
 
@@ -79,4 +81,5 @@ def algo_idastar():
 
     state.stats.update(nodes=len(total_visited), found=False,
                        time=time.perf_counter() - t0)
+    state.came_from = came_from
     state.finished = True
