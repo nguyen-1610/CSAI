@@ -1,7 +1,7 @@
 import time
 import heapq
-from config import state
-from grid import get_neighbors, reconstruct_path, heuristic, next_id, get_terrain_cost
+from core.grid import get_neighbors, reconstruct_path, heuristic, next_id, get_terrain_cost
+from core.state import state
 
 
 def algo_astar():

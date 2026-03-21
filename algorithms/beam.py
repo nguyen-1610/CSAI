@@ -1,6 +1,6 @@
 import time
-from config import state
-from grid import get_neighbors, reconstruct_path, heuristic, path_cost
+from core.grid import get_neighbors, reconstruct_path, heuristic, path_cost
+from core.state import state
 
 # Số lượng node tối đa được giữ lại sau mỗi bước mở rộng
 BEAM_WIDTH = 8

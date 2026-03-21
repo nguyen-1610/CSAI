@@ -1,6 +1,6 @@
 import time
-from config import state, ROWS, COLS
-from grid import get_neighbors, reconstruct_path, path_cost
+from core.grid import get_neighbors, reconstruct_path, path_cost
+from core.state import state
 
 
 def algo_iddfs():
@@ -31,7 +31,7 @@ def algo_iddfs():
         state.finished = True
         return
 
-    for depth in range(ROWS * COLS + 1):
+    for depth in range(state.rows * state.cols + 1):
         came_from = {s: None}
         path_set = {s}
         # Transposition table: track max budget at which each node was explored.

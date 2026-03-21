@@ -1,7 +1,7 @@
 import time
 from collections import deque
-from config import state
-from grid import get_neighbors, path_cost
+from core.grid import get_neighbors, path_cost
+from core.state import state
 
 
 def algo_bidirectional():

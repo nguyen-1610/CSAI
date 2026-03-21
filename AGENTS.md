@@ -1,4 +1,3 @@
-
 # AGENTS.md
 
 Hướng dẫn này áp dụng cho toàn bộ repo `lab01/`.
@@ -12,9 +11,17 @@ Hướng dẫn này áp dụng cho toàn bộ repo `lab01/`.
 
 ## Cách chạy
 
+Repo này dùng virtual environment tại `.venv/`.
+
+- Không cài package Python trực tiếp lên máy.
+- Luôn bật `.venv` trước khi chạy app, cài package, hoặc verify.
+- Khi `.venv` đã được bật, dùng `python` và `pip` là đủ; không cần `python3`.
+- Nếu không muốn activate shell, dùng trực tiếp `.venv/bin/python` và `.venv/bin/pip`.
+
 ```bash
+source .venv/bin/activate
 pip install -r requirements.txt
-python3 app.py
+python app.py
 ```
 
 Mở `http://localhost:5000`.
@@ -22,7 +29,15 @@ Mở `http://localhost:5000`.
 Mặc định local dev đang bật auto-reload. Nếu muốn tắt:
 
 ```bash
-MAZE_DEBUG=0 python3 app.py
+source .venv/bin/activate
+MAZE_DEBUG=0 python app.py
+```
+
+Hoặc chạy không cần activate:
+
+```bash
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python app.py
 ```
 
 ## Verify nhanh
@@ -30,7 +45,8 @@ MAZE_DEBUG=0 python3 app.py
 - Kiểm tra cú pháp:
 
 ```bash
-python3 -m compileall app.py algorithms core
+source .venv/bin/activate
+python -m compileall app.py algorithms core
 ```
 
 - Nếu sửa UI hoặc API, nên chạy app và test tay ít nhất:

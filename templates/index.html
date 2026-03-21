@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maze Pathfinding Visualizer</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260322a">
+  <link rel="stylesheet" href="/static/css/visualize.css?v=20260322a">
+  <link rel="stylesheet" href="/static/css/race.css?v=20260322a">
 </head>
 <body>
   <header class="header">
@@ -16,23 +18,39 @@
 
     <!-- ── Visualize Ribbon ──────────────────────────────── -->
     <div class="ribbon" id="ribbon-viz">
-      <!-- Algorithm -->
-      <div class="rib-group">
-        <div class="rib-body">
-          <div class="dropdown" id="algo-dd">
-            <button class="dd-btn" id="algo-btn">
-              <span id="algo-name"></span>
-              <span class="dd-arrow">&#9662;</span>
-            </button>
-            <div class="dd-list hidden" id="algo-list"></div>
+      <!-- Speed + Algorithm -->
+      <div class="rib-group rib-group-stack">
+        <div class="rib-stack">
+          <div class="stack-unit stack-unit-speed">
+            <div class="rib-body col rib-speed-body">
+              <div class="speed-header">Speed &mdash; <span id="speed-val">18</span></div>
+              <div class="speed-row">
+                <button class="btn btn-icon" id="btn-spd-down">&minus;</button>
+                <input type="range" class="speed-slider" id="speed-slider"
+                       min="1" max="200" value="20">
+                <button class="btn btn-icon" id="btn-spd-up">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack-unit stack-unit-algo">
+            <div class="rib-body">
+              <div class="dropdown" id="algo-dd">
+                <button class="dd-btn" id="algo-btn">
+                  <span id="algo-name"></span>
+                  <span class="dd-arrow">&#9662;</span>
+                </button>
+                <div class="dd-list hidden" id="algo-list"></div>
+              </div>
+            </div>
+            <div class="rib-label">Algorithm</div>
           </div>
         </div>
-        <div class="rib-label">Algorithm</div>
       </div>
       <div class="rib-sep"></div>
 
       <!-- Run / Step -->
-      <div class="rib-group">
+      <div class="rib-group rib-group-run">
         <div class="rib-body col" style="align-items:center; gap:4px">
           <div class="step-row">
             <button class="btn btn-icon btn-step-nav" id="btn-step-back" title="Step Back [,]" disabled>&#9664;</button>
@@ -46,8 +64,8 @@
       <div class="rib-sep"></div>
 
       <!-- Edit -->
-      <div class="rib-group">
-        <div class="rib-body col">
+      <div class="rib-group rib-group-edit">
+        <div class="rib-body edit-grid">
           <button class="btn btn-sm" id="btn-clear">Clear Path</button>
           <button class="btn btn-sm" id="btn-maze">Generate Maze</button>
           <button class="btn btn-sm" id="btn-weighted-maze">Weighted Maze</button>
@@ -57,28 +75,13 @@
       </div>
       <div class="rib-sep"></div>
 
-      <!-- Speed -->
-      <div class="rib-group">
-        <div class="rib-body col" style="min-width:190px">
-          <div class="speed-header">Speed &mdash; <span id="speed-val">20</span></div>
-          <div class="speed-row">
-            <button class="btn btn-icon" id="btn-spd-down">&minus;</button>
-            <input type="range" class="speed-slider" id="speed-slider"
-                   min="1" max="200" value="20">
-            <button class="btn btn-icon" id="btn-spd-up">+</button>
-          </div>
-        </div>
-        <div class="rib-label">Speed</div>
-      </div>
-      <div class="rib-sep"></div>
-
       <!-- Grid -->
-      <div class="rib-group">
+      <div class="rib-group rib-group-grid">
         <div class="rib-body col">
           <div class="grid-row">
             <span class="grid-lbl">Rows</span>
             <button class="btn btn-icon" id="btn-row-dn">&minus;</button>
-            <input class="grid-input" id="inp-rows" value="28" maxlength="3">
+            <input class="grid-input" id="inp-rows" value="30" maxlength="3">
             <button class="btn btn-icon" id="btn-row-up">+</button>
           </div>
           <div class="grid-row">
@@ -93,8 +96,8 @@
       <div class="rib-sep"></div>
 
       <!-- Options -->
-      <div class="rib-group">
-        <div class="rib-body col" style="min-width:180px">
+      <div class="rib-group rib-group-options">
+        <div class="rib-body col rib-options-body">
           <button class="btn btn-sm btn-cp-toggle" id="btn-cp-toggle">
             <span class="cp-icon"></span><span id="cp-label">Checkpoint</span>
           </button>
@@ -105,40 +108,6 @@
           </div>
         </div>
         <div class="rib-label">Options</div>
-      </div>
-      <div class="rib-sep"></div>
-
-      <!-- Statistics -->
-      <div class="rib-group rib-stats">
-        <div class="rib-body col" style="align-items:center">
-          <div class="stats-grid">
-            <div class="stat">
-              <div class="stat-lbl">Nodes</div>
-              <div class="stat-val" id="st-nodes">0</div>
-            </div>
-            <div class="stat">
-              <div class="stat-lbl">Path</div>
-              <div class="stat-val" id="st-path">0</div>
-            </div>
-            <div class="stat">
-              <div class="stat-lbl">Cost</div>
-              <div class="stat-val" id="st-cost">0</div>
-            </div>
-            <div class="stat">
-              <div class="stat-lbl">Time</div>
-              <div class="stat-val" id="st-time">0.0 ms</div>
-            </div>
-          </div>
-          <div class="stat-status" id="st-status"></div>
-        </div>
-        <div class="rib-label">Statistics</div>
-      </div>
-
-      <!-- Show Tree (far right) -->
-      <div class="rib-group rib-right">
-        <div class="rib-body center">
-          <button class="btn btn-accent hidden" id="btn-tree">Show Tree</button>
-        </div>
       </div>
     </div>
 
@@ -179,36 +148,71 @@
   <main class="main">
     <!-- Visualize -->
     <div class="content" id="content-viz">
-      <div class="grid-area" id="grid-area">
-        <canvas id="grid-canvas"></canvas>
-        <div class="grid-legend">
-          <div class="gl-item"><span class="gl-dot" style="background:#34C759"></span>Start</div>
-          <div class="gl-item"><span class="gl-dot" style="background:#FF3B30"></span>End</div>
-          <div class="gl-item"><span class="gl-dot" style="background:#FFD60A"></span>Checkpoint</div>
-          <div class="gl-item"><span class="gl-dot" style="background:#1C1C1E"></span>Wall</div>
-          <div class="gl-item"><span class="gl-dot" style="background:#007AFF"></span>Visited</div>
-          <div class="gl-item"><span class="gl-dot" style="background:#5856D6"></span>Frontier</div>
-          <div class="gl-item"><span class="gl-dot" style="background:#FF9500"></span>Path</div>
-          <div class="gl-sep"></div>
-          <div class="gl-item"><span class="gl-dot" style="background:#8BC34A"></span>Grass ×2</div>
-          <div class="gl-item"><span class="gl-dot" style="background:#8B5E3C"></span>Swamp ×5</div>
-          <div class="gl-item"><span class="gl-dot" style="background:#1B6CA8"></span>Water ×10</div>
+      <div class="viz-workspace">
+        <div class="grid-area" id="grid-area">
+          <canvas id="grid-canvas"></canvas>
+        </div>
+        <div class="tree-area hidden" id="tree-area">
+          <div class="tree-hdr">
+            <span id="tree-info">Exploration tree</span>
+            <div class="tree-tools">
+              <span id="tree-hint">Scroll=zoom  Drag=pan</span>
+              <button class="btn btn-sm btn-tree-close hidden" id="btn-tree-close">Hide Tree</button>
+            </div>
+          </div>
+          <canvas id="tree-canvas"></canvas>
+          <div class="tree-legend">
+            <span class="leg"><span class="dot" style="background:#34C759"></span>Start</span>
+            <span class="leg"><span class="dot" style="background:#FF3B30"></span>End</span>
+            <span class="leg"><span class="dot" style="background:#FFD60A"></span>Checkpoint</span>
+            <span class="leg"><span class="dot" style="background:#FF9500"></span>Path</span>
+            <span class="leg"><span class="dot" style="background:#AFC8F0"></span>Explored</span>
+          </div>
         </div>
       </div>
-      <div class="tree-area hidden" id="tree-area">
-        <div class="tree-hdr">
-          <span id="tree-info">Exploration tree</span>
-          <span id="tree-hint">Scroll=zoom  Drag=pan</span>
-        </div>
-        <canvas id="tree-canvas"></canvas>
-        <div class="tree-legend">
-          <span class="leg"><span class="dot" style="background:#34C759"></span>Start</span>
-          <span class="leg"><span class="dot" style="background:#FF3B30"></span>End</span>
-          <span class="leg"><span class="dot" style="background:#FFD60A"></span>Checkpoint</span>
-          <span class="leg"><span class="dot" style="background:#FF9500"></span>Path</span>
-          <span class="leg"><span class="dot" style="background:#AFC8F0"></span>Explored</span>
-        </div>
-      </div>
+      <aside class="viz-sidebar" id="viz-sidebar">
+        <section class="side-panel side-panel-stats">
+          <div class="side-title">Statistics</div>
+          <div class="stats-grid">
+            <div class="stat">
+              <div class="stat-lbl">Nodes</div>
+              <div class="stat-val" id="st-nodes">0</div>
+            </div>
+            <div class="stat">
+              <div class="stat-lbl">Path</div>
+              <div class="stat-val" id="st-path">0</div>
+            </div>
+            <div class="stat">
+              <div class="stat-lbl">Cost</div>
+              <div class="stat-val" id="st-cost">0</div>
+            </div>
+            <div class="stat">
+              <div class="stat-lbl">Time</div>
+              <div class="stat-val" id="st-time">0.0 ms</div>
+            </div>
+          </div>
+          <div class="stat-status" id="st-status"></div>
+        </section>
+        <section class="side-panel side-panel-tree">
+          <button class="btn btn-accent hidden" id="btn-tree">Show Tree</button>
+        </section>
+        <section class="side-panel side-panel-legend">
+          <div class="side-title">Legend</div>
+          <div class="grid-legend">
+            <div class="gl-item"><span class="gl-dot" style="background:#34C759"></span>Start</div>
+            <div class="gl-item"><span class="gl-dot" style="background:#FF3B30"></span>End</div>
+            <div class="gl-item"><span class="gl-dot" style="background:#FFD60A"></span>Checkpoint</div>
+            <div class="gl-item"><span class="gl-dot" style="background:#1C1C1E"></span>Wall</div>
+            <div class="gl-item"><span class="gl-dot" style="background:#007AFF"></span>Visited</div>
+            <div class="gl-item"><span class="gl-dot" style="background:#5856D6"></span>Frontier</div>
+            <div class="gl-item"><span class="gl-dot" style="background:#FF9500"></span>Path</div>
+            <div class="gl-sep"></div>
+            <div class="gl-item"><span class="gl-dot" style="background:#8BC34A"></span>Grass ×2</div>
+            <div class="gl-item"><span class="gl-dot" style="background:#8B5E3C"></span>Swamp ×5</div>
+            <div class="gl-item"><span class="gl-dot" style="background:#1B6CA8"></span>Water ×10</div>
+          </div>
+        </section>
+      </aside>
     </div>
 
     <!-- Race -->
@@ -227,6 +231,8 @@
     const ALG_NAMES = {{ algo_names | tojson }};
     const ALG_FULL  = {{ algo_full  | tojson }};
   </script>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=20260322a"></script>
+  <script src="/static/js/visualize.js?v=20260322a"></script>
+  <script src="/static/js/race.js?v=20260322a"></script>
 </body>
 </html>

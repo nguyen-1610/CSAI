@@ -1,132 +1,342 @@
-# Cấu trúc thư mục cho Maze Pathfinding Visualizer
+# Architecture
 
-## Cây thư mục đề xuất
+## Tổng quan
 
-```
+Project hiện tại là một web app Flask để visualize và so sánh các thuật toán tìm đường trên grid.
+
+Ứng dụng có 2 chế độ chính:
+
+- `Visualize`: chạy một thuật toán, hỗ trợ pause, continue, step, step-back, checkpoint, weighted terrain, tree view.
+- `Race`: chạy nhiều thuật toán song song để so sánh nodes/path/cost/time.
+
+## Cấu trúc thư mục hiện tại
+
+```text
 lab01/
-├── main.py                      # Entry point (~10 dòng)
-├── config.py                    # Hằng số + State class + clear_search/start_algorithm (~120 dòng)
-├── grid.py                      # Grid helpers + maze generation (~75 dòng)
-├── gui.py                       # Toàn bộ rendering pygame + main event loop (~300 dòng)
-├── algorithms/                  # Plugin folder - mỗi thuật toán 1 file
-│   ├── __init__.py              # Registry: ALGO_FUNCS, ALG_NAMES, ALG_FULL (~30 dòng)
-│   ├── bfs.py                   # Breadth-First Search
-│   ├── dfs.py                   # Depth-First Search
-│   ├── ucs.py                   # Uniform Cost Search
-│   ├── astar.py                 # A* Search
-│   ├── iddfs.py                 # Iterative Deepening DFS
-│   ├── bidirectional.py         # Bidirectional BFS
-│   ├── beam.py                  # Beam Search
-│   └── idastar.py               # Iterative Deepening A*
-├── README.md
-├── .gitignore
-└── .venv/
+├── app.py
+├── core/
+│   ├── __init__.py
+│   ├── constants.py
+│   ├── state.py
+│   ├── grid.py
+│   ├── runner.py
+│   └── tree.py
+├── algorithms/
+│   ├── __init__.py
+│   ├── bfs.py
+│   ├── dfs.py
+│   ├── ucs.py
+│   ├── astar.py
+│   ├── iddfs.py
+│   ├── bidirectional.py
+│   ├── beam.py
+│   └── idastar.py
+├── templates/
+│   └── index.html
+├── static/
+│   ├── css/
+│   │   ├── style.css
+│   │   ├── visualize.css
+│   │   └── race.css
+│   └── js/
+│       ├── app.js
+│       ├── visualize.js
+│       └── race.js
+├── AGENTS.md
+└── Architecture.md
 ```
 
-**Tổng: 4 core files + 9 algorithm files = 13 files**
+## Dependency graph
 
-## Dependency Graph (không circular import)
+```text
+core/constants.py
+  └── chỉ chứa constants / limits
 
-```
-Layer 0:  config.py              (không import file nào trong project)
-Layer 1:  grid.py                (import config)
-Layer 2:  algorithms/*.py        (import config, grid)
-          algorithms/__init__.py (import tất cả algorithm modules)
-Layer 3:  gui.py                 (import config, grid, algorithms)
-Layer 4:  main.py                (import gui)
-```
+core/state.py
+  └── runtime singleton state
 
-## Chi tiết từng file
+core/grid.py
+  └── import core.constants, core.state
 
-### `config.py` — Hằng số + State
+algorithms/*.py
+  └── import core.state, core.grid
 
-**Phần constants:**
+core/tree.py
+  └── import core.state
 
-* Window: `W`, `H`, `ROWS`, `COLS`, `CELL`, `GX`, `GY`, `PX`, `PW`
-* Màu sắc: `BG`, `C_EMPTY`, `C_WALL`, `C_START`, `C_END`, `C_VISITED`, `C_FRONTIER`, `C_PATH`, các màu UI
-* `DIRS` = [(-1,0), (1,0), (0,-1), (0,1)]
+core/runner.py
+  └── import core.constants, core.state, core.grid, algorithms
 
-**Phần state:**
+app.py
+  └── import core.runner, core.tree, algorithms
 
-* Class `State` với attributes: `walls`, `start_cell`, `end_cell`, `vis_cells`, `front_cells`, `path_cells`, `running`, `finished`, `cur_alg`, `set_mode`, `speed`, `alg_gen`, `_counter`, `stats`
-* Singleton instance: `state = State()`
-* Hàm `clear_search()` và `start_algorithm()`
+templates/index.html
+  └── load static JS/CSS
 
-### `grid.py` — Grid utilities + Maze generation
+static/js/app.js
+  └── shell chung cho frontend
 
-**Grid helpers:**
+static/js/visualize.js
+  └── dùng /api/state, /api/tree
 
-* `in_bounds(r, c)` — kiểm tra ô trong grid
-* `get_neighbors(r, c)` — trả về ô lân cận hợp lệ (không phải wall)
-* `heuristic(a, b)` — Manhattan distance
-* `reconstruct_path(came_from, node)` — dựng path từ end về start
-* `next_id()` — tie-breaker cho heapq
-
-**Maze generation:**
-
-* `generate_maze()` — tạo mê cung bằng recursive division (iterative stack-based)
-
-### `algorithms/__init__.py` — Plugin Registry
-
-```python
-from algorithms.bfs import algo_bfs
-from algorithms.dfs import algo_dfs
-# ... tương tự
-
-REGISTRY = [
-    {"name": "BFS",   "full": "Breadth-First Search",              "func": algo_bfs},
-    {"name": "DFS",   "full": "Depth-First Search",                "func": algo_dfs},
-    # ...
-]
-
-ALGO_FUNCS = [e["func"] for e in REGISTRY]
-ALG_NAMES  = [e["name"] for e in REGISTRY]
-ALG_FULL   = [e["full"] for e in REGISTRY]
+static/js/race.js
+  └── dùng /api/race
 ```
 
-### Mỗi file algorithm (vd `algorithms/bfs.py`)
+## Backend
 
-* Import `from config import state` và `from grid import get_neighbors, reconstruct_path` (tuỳ algo)
-* Hàm generator `algo_bfs()` — yield `(visited, frontier)` mỗi bước
-* Thay `global path_cells, stats, finished` bằng `state.path_cells`, `state.stats`, `state.finished`
+### `app.py`
 
-### `gui.py` — Giao diện pygame
+File Flask entrypoint, hiện khá mỏng:
 
-* Font init, screen/clock
-* Button layout
-* Hàm `txt()`, `draw_btn()`, `mk_btn()`
-* `draw_all()` — render toàn bộ
-* `run()` — main event loop (while True)
+- render `index.html`
+- expose:
+  - `GET /api/state`
+  - `GET /api/race`
+  - `GET /api/tree`
+  - `POST /api/action`
+- bật auto-reload trong local dev qua `MAZE_DEBUG`
 
-### `main.py` — Entry point
+### `core/constants.py`
 
-```python
-import pygame, sys
-pygame.init()
-sys.setrecursionlimit(100_000)
-from gui import run
-run()
+Chỉ giữ constants:
+
+- default rows/cols
+- directions
+- speed limits
+- grid size limits
+
+Không giữ runtime state nữa.
+
+### `core/state.py`
+
+Chứa singleton runtime state `state`.
+
+Các nhóm dữ liệu chính:
+
+- grid state: `rows`, `cols`, `walls`, `terrain`
+- markers: `start_cell`, `end_cell`, `checkpoint_cell`
+- search state: `vis_cells`, `front_cells`, `path_cells`, `came_from`
+- execution state: `running`, `paused`, `finished`, `alg_gen`, `speed`
+- step state: `step_history`, `step_ptr`
+
+### `core/grid.py`
+
+Chứa:
+
+- helper grid: `in_bounds`, `get_neighbors`, `heuristic`, `reconstruct_path`, `next_id`
+- terrain cost helpers: `get_terrain_cost`, `path_cost`
+- encode grid cho frontend: `build_grid_array`
+- maze / terrain generation
+
+### `core/tree.py`
+
+Chuyển `state.came_from` + `state.path_cells` thành dữ liệu tree để frontend vẽ.
+
+Output chính:
+
+- `positions`
+- `edges`
+- `bounds`
+- `start`, `end`
+- `shown`, `total`
+- `algo`
+
+### `core/runner.py`
+
+Đây là orchestration layer chính.
+
+Chứa:
+
+- `handle_action()` cho toàn bộ action từ frontend
+- action của visualize mode
+- action của race mode
+- checkpoint wrapper
+- algorithm thread
+- race thread
+- các hàm serialize state cho `/api/state` và `/api/race`
+
+Nói ngắn gọn: nếu frontend bấm nút gì, gần như cuối cùng sẽ đi qua `core/runner.py`.
+
+## Algorithms
+
+Mỗi file trong `algorithms/` là một generator algorithm.
+
+Contract hiện tại:
+
+- đọc input từ `state`
+- mỗi bước `yield (visited, frontier)`
+- khi kết thúc phải cập nhật:
+  - `state.path_cells`
+  - `state.stats`
+  - `state.came_from`
+  - `state.finished = True`
+
+Registry nằm trong `algorithms/__init__.py`.
+
+## Frontend
+
+### `templates/index.html`
+
+Một page duy nhất, gồm 2 tab:
+
+- `Visualize`
+- `Race`
+
+Layout `Visualize` hiện tại:
+
+- header ribbon cho controls
+- vùng làm việc chính cho grid/tree
+- sidebar bên phải cho:
+  - statistics
+  - nút `Show Tree`
+  - legend
+
+### `static/js/app.js`
+
+Shell chung:
+
+- lưu `App.state`
+- helper DOM / API
+- tab switching
+- bootstrap frontend
+
+### `static/js/visualize.js`
+
+Chứa toàn bộ logic của tab `Visualize`:
+
+- dropdown algorithm
+- buttons: run, step, clear, maze, reset, speed, grid size, checkpoint, terrain
+- polling `/api/state`
+- polling `/api/tree`
+- render grid canvas
+- render tree canvas
+- drag start/end/checkpoint
+- path animation
+
+Behavior UI quan trọng hiện tại:
+
+- grid luôn auto-fit, không còn zoom/pan bằng chuột
+- khi mở tree, sidebar phải tự ẩn để giao diện thoáng hơn
+- khi mở tree, view tự focus vào root trước
+
+### `static/js/race.js`
+
+Chứa logic của tab `Race`:
+
+- chọn algorithm để race
+- polling `/api/race`
+- render mini mazes
+- render charts
+
+### CSS
+
+- `style.css`: base styles dùng chung
+- `visualize.css`: layout/styling riêng cho `Visualize`
+- `race.css`: layout/styling riêng cho `Race`
+
+## API contract
+
+### `GET /api/state`
+
+Trả về state của tab `Visualize`, gồm các field chính:
+
+- `rows`, `cols`, `grid`
+- `running`, `paused`, `finished`
+- `step_ptr`
+- `path_cells`
+- `cur_alg`
+- `speed`
+- `stats`
+- `has_tree`, `show_tree`
+- `checkpoint`
+
+### `GET /api/race`
+
+Trả về state của tab `Race`, gồm:
+
+- `order`
+- `running`, `paused`, `done`
+- `step_ptr`
+- `runners`
+- `results`
+
+### `GET /api/tree`
+
+Trả về dữ liệu tree để render khi `show_tree = true`.
+
+### `POST /api/action`
+
+Frontend gửi action string vào đây. Một số action chính:
+
+- visualize:
+  - `run`, `step`, `step_back`, `cancel_algo`
+  - `clear`, `reset`, `maze`, `weighted_maze`
+  - `set_start`, `set_end`, `set_checkpoint`, `remove_checkpoint`
+  - `grid_cell`, `set_terrain`
+  - `speed`, `change_grid`, `set_grid`
+  - `toggle_tree`
+- race:
+  - `race_toggle`, `race_start`, `race_cancel`
+  - `race_step`, `race_step_back`, `race_stop`
+
+## Cách chạy
+
+### Development
+
+```bash
+pip install -r requirements.txt
+python3 app.py
 ```
 
-## Cách thêm thuật toán mới (plugin workflow)
+Mặc định local dev đang bật auto-reload.
 
-1. Tạo `algorithms/greedy.py` với `algo_greedy()` generator
-2. Thêm 1 dòng import + 1 entry vào `REGISTRY` trong `algorithms/__init__.py`
-3. Xong — GUI tự nhận algorithm mới
+Nếu muốn tắt:
 
-## Thứ tự thực hiện
+```bash
+MAZE_DEBUG=0 python3 app.py
+```
 
-1. Tạo cấu trúc thư mục + tất cả file rỗng (hoặc với comment mô tả)
-2. Tạo `config.py` — copy hằng số + tạo State class
-3. Tạo `grid.py` — extract helpers + maze gen
-4. Tạo `algorithms/` + 8 file + `__init__.py`
-5. Tạo `gui.py` — rendering + event loop
-6. Tạo `main.py` — entry point
-7. Test: `python main.py`
+### URL
 
-## Verification
+```text
+http://localhost:5000
+```
 
-* Chạy `python main.py` — app hoạt động y hệt bản gốc
-* Test từng algorithm: BFS, DFS, UCS, A*, IDDFS, Bidirectional, Beam, IDA*
-* Test maze generation, draw/erase walls, set start/end
-* Test clear search, reset all, speed controls
+## Verify nhanh sau khi sửa
+
+### Python syntax
+
+```bash
+python3 -m py_compile app.py core/*.py algorithms/*.py
+```
+
+### JS syntax
+
+```bash
+node --check static/js/app.js
+node --check static/js/visualize.js
+node --check static/js/race.js
+```
+
+### Manual smoke test
+
+- Visualize:
+  - chọn thuật toán và `Run`
+  - `Pause` / `Continue`
+  - `Step` / `Step Back`
+  - kéo start/end/checkpoint
+  - `Generate Maze`
+  - `Weighted Maze`
+  - `Show Tree`
+- Race:
+  - chọn ít nhất 2 thuật toán
+  - `Race`
+  - xem panel + chart
+
+## Ghi chú bảo trì
+
+- Nếu đổi `id` trong `index.html`, phải kiểm tra lại JS bind tương ứng.
+- Nếu đổi mapping cell type trong backend, phải sửa đồng bộ frontend.
+- Nếu đổi format `/api/state`, `/api/race`, `/api/tree`, phải cập nhật frontend.
+- `core/runner.py` là file nhạy cảm nhất; thay đổi ở đây dễ ảnh hưởng cả visualize, checkpoint, race và tree.

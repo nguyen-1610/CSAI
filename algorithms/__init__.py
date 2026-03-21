@@ -19,7 +19,7 @@ from algorithms.idastar import algo_idastar
 
 # ── Placeholder cho thuật toán chưa có file ──────────────────────────────────
 def _placeholder_bfs():
-    from config import state
+    from core.state import state
     state.finished = True
     return
     yield  # noqa: unreachable — makes this a generator
