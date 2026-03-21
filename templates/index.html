@@ -26,16 +26,20 @@
             </button>
             <div class="dd-list hidden" id="algo-list"></div>
           </div>
-          <div class="algo-full" id="algo-full"></div>
         </div>
         <div class="rib-label">Algorithm</div>
       </div>
       <div class="rib-sep"></div>
 
-      <!-- Run -->
+      <!-- Run / Step -->
       <div class="rib-group">
-        <div class="rib-body center">
-          <button class="btn btn-run" id="btn-run">Run</button>
+        <div class="rib-body col" style="align-items:center; gap:4px">
+          <div class="step-row">
+            <button class="btn btn-icon btn-step-nav" id="btn-step-back" title="Step Back [,]" disabled>&#9664;</button>
+            <button class="btn btn-run" id="btn-run">Run</button>
+            <button class="btn btn-icon btn-step-nav" id="btn-step-fwd" title="Step Forward [.]" disabled>&#9654;</button>
+          </div>
+          <button class="btn btn-sm btn-cancel hidden" id="btn-cancel">&#9724; Cancel</button>
         </div>
         <div class="rib-label">Run</div>
       </div>
@@ -46,6 +50,7 @@
         <div class="rib-body col">
           <button class="btn btn-sm" id="btn-clear">Clear Path</button>
           <button class="btn btn-sm" id="btn-maze">Generate Maze</button>
+          <button class="btn btn-sm" id="btn-weighted-maze">Weighted Maze</button>
           <button class="btn btn-sm btn-danger" id="btn-reset">Reset All</button>
         </div>
         <div class="rib-label">Edit</div>
@@ -87,19 +92,25 @@
       </div>
       <div class="rib-sep"></div>
 
-      <!-- Points -->
+      <!-- Options -->
       <div class="rib-group">
-        <div class="rib-body col">
-          <button class="btn btn-sm" id="btn-ss">Set Start [S]</button>
-          <button class="btn btn-sm" id="btn-se">Set End [E]</button>
+        <div class="rib-body col" style="min-width:180px">
+          <button class="btn btn-sm btn-cp-toggle" id="btn-cp-toggle">
+            <span class="cp-icon"></span><span id="cp-label">Checkpoint</span>
+          </button>
+          <div class="terrain-row">
+            <button class="btn btn-sm btn-terrain" id="btn-t-grass"  data-terrain="10" title="Grass — cost ×2"><span class="t-dot" style="background:#8BC34A"></span>Grass ×2</button>
+            <button class="btn btn-sm btn-terrain" id="btn-t-swamp"  data-terrain="9"  title="Swamp — cost ×5"><span class="t-dot" style="background:#8B5E3C"></span>Swamp ×5</button>
+            <button class="btn btn-sm btn-terrain" id="btn-t-water"  data-terrain="8"  title="Water — cost ×10"><span class="t-dot" style="background:#1B6CA8"></span>Water ×10</button>
+          </div>
         </div>
-        <div class="rib-label">Points</div>
+        <div class="rib-label">Options</div>
       </div>
       <div class="rib-sep"></div>
 
       <!-- Statistics -->
       <div class="rib-group rib-stats">
-        <div class="rib-body">
+        <div class="rib-body col" style="align-items:center">
           <div class="stats-grid">
             <div class="stat">
               <div class="stat-lbl">Nodes</div>
@@ -139,10 +150,27 @@
       </div>
       <div class="rib-sep"></div>
       <div class="rib-group">
-        <div class="rib-body center">
-          <button class="btn btn-race" id="btn-race" disabled>Select 2+ algos</button>
+        <div class="rib-body col" style="align-items:center; gap:4px">
+          <div class="step-row">
+            <button class="btn btn-icon btn-step-nav" id="race-btn-step-back" title="Step Back" disabled>&#9664;</button>
+            <button class="btn btn-run" id="btn-race" disabled>Race</button>
+            <button class="btn btn-icon btn-step-nav" id="race-btn-step-fwd" title="Step Forward" disabled>&#9654;</button>
+          </div>
+          <button class="btn btn-sm btn-cancel hidden" id="race-btn-cancel">&#9724; Cancel</button>
         </div>
         <div class="rib-label">Race</div>
+      </div>
+      <div class="rib-sep"></div>
+      <div class="rib-group">
+        <div class="rib-body col" style="min-width:190px">
+          <div class="speed-header">Speed &mdash; <span id="race-speed-val">20</span></div>
+          <div class="speed-row">
+            <button class="btn btn-icon" id="race-btn-spd-dn">&minus;</button>
+            <input type="range" class="speed-slider" id="race-speed-slider" min="1" max="200" value="20">
+            <button class="btn btn-icon" id="race-btn-spd-up">+</button>
+          </div>
+        </div>
+        <div class="rib-label">Speed</div>
       </div>
     </div>
   </header>
@@ -153,6 +181,19 @@
     <div class="content" id="content-viz">
       <div class="grid-area" id="grid-area">
         <canvas id="grid-canvas"></canvas>
+        <div class="grid-legend">
+          <div class="gl-item"><span class="gl-dot" style="background:#34C759"></span>Start</div>
+          <div class="gl-item"><span class="gl-dot" style="background:#FF3B30"></span>End</div>
+          <div class="gl-item"><span class="gl-dot" style="background:#FFD60A"></span>Checkpoint</div>
+          <div class="gl-item"><span class="gl-dot" style="background:#1C1C1E"></span>Wall</div>
+          <div class="gl-item"><span class="gl-dot" style="background:#007AFF"></span>Visited</div>
+          <div class="gl-item"><span class="gl-dot" style="background:#5856D6"></span>Frontier</div>
+          <div class="gl-item"><span class="gl-dot" style="background:#FF9500"></span>Path</div>
+          <div class="gl-sep"></div>
+          <div class="gl-item"><span class="gl-dot" style="background:#8BC34A"></span>Grass ×2</div>
+          <div class="gl-item"><span class="gl-dot" style="background:#8B5E3C"></span>Swamp ×5</div>
+          <div class="gl-item"><span class="gl-dot" style="background:#1B6CA8"></span>Water ×10</div>
+        </div>
       </div>
       <div class="tree-area hidden" id="tree-area">
         <div class="tree-hdr">
@@ -163,6 +204,7 @@
         <div class="tree-legend">
           <span class="leg"><span class="dot" style="background:#34C759"></span>Start</span>
           <span class="leg"><span class="dot" style="background:#FF3B30"></span>End</span>
+          <span class="leg"><span class="dot" style="background:#FFD60A"></span>Checkpoint</span>
           <span class="leg"><span class="dot" style="background:#FF9500"></span>Path</span>
           <span class="leg"><span class="dot" style="background:#AFC8F0"></span>Explored</span>
         </div>

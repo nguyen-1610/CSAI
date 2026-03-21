@@ -1,6 +1,6 @@
 import time
 from config import state
-from grid import get_neighbors, reconstruct_path, heuristic
+from grid import get_neighbors, reconstruct_path, heuristic, path_cost
 
 # Số lượng node tối đa được giữ lại sau mỗi bước mở rộng
 BEAM_WIDTH = 8
@@ -27,7 +27,7 @@ def algo_beam():
                 p = reconstruct_path(came_from, e)
                 state.path_cells = p
                 state.stats.update(nodes=len(visited), path=len(p),
-                                   cost=len(p)-1, time=time.perf_counter()-t0, found=True)
+                                   cost=path_cost(p), time=time.perf_counter()-t0, found=True)
                 state.came_from = came_from
                 state.finished = True
                 return

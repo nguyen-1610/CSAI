@@ -1,6 +1,6 @@
 import time
 from config import state, ROWS, COLS
-from grid import get_neighbors, reconstruct_path
+from grid import get_neighbors, reconstruct_path, path_cost
 
 
 def algo_iddfs():
@@ -87,7 +87,7 @@ def algo_iddfs():
             state.stats.update(
                 nodes=len(total_visited),
                 path=len(p),
-                cost=len(p) - 1,
+                cost=path_cost(p),
                 time=time.perf_counter() - t0,
                 found=True,
             )

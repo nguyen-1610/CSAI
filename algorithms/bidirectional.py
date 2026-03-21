@@ -1,7 +1,7 @@
 import time
 from collections import deque
 from config import state
-from grid import get_neighbors
+from grid import get_neighbors, path_cost
 
 
 def algo_bidirectional():
@@ -79,7 +79,7 @@ def algo_bidirectional():
         visited_all = set(fwd_visited) | set(bwd_visited)
         state.path_cells = p
         state.stats.update(nodes=len(visited_all), path=len(p),
-                           cost=len(p) - 1, time=time.perf_counter() - t0, found=True)
+                           cost=path_cost(p), time=time.perf_counter() - t0, found=True)
         state.came_from = fwd_visited
         state.finished = True
         return

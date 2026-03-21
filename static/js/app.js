@@ -11,6 +11,10 @@ const CELL_C = [
   '#007AFF',   // 4 visited
   '#5856D6',   // 5 frontier
   '#FF9500',   // 6 path
+  '#FFD60A',   // 7 checkpoint
+  '#1B6CA8',   // 8 deep water  (cost ×10)
+  '#8B5E3C',   // 9 swamp       (cost ×5)
+  '#8BC34A',   // 10 grass      (cost ×2)
 ];
 const BAR_PAL = [
   '#007AFF','#34C759','#FF9500','#FF3B30',
@@ -36,6 +40,17 @@ let ddOpen = false;
 
 // Race panel canvases cache
 let racePanelOrder = [];
+
+// Grid pan/zoom
+let gZoom = 1, gOffX = 0, gOffY = 0, gPanDrag = null;
+let lastVizRows = 0, lastVizCols = 0;
+
+// Start/end drag
+let dragType = null, dragCell = null, lastDragSent = null;
+
+// Path animation only
+let prevGrid = null;
+const animCells = new Map(); // key "r,c" → {startTime, duration}  (path cells only)
 
 // ── DOM ──────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -113,22 +128,76 @@ document.addEventListener('click', e => {
 });
 
 // ── Button handlers ──────────────────────────────────────────
-$('btn-run').addEventListener('click',   () => act({action:'run'}));
-$('btn-clear').addEventListener('click', () => act({action:'clear'}));
-$('btn-maze').addEventListener('click',  () => act({action:'maze'}));
-$('btn-reset').addEventListener('click', () => act({action:'reset'}));
-$('btn-tree').addEventListener('click',  () => { act({action:'toggle_tree'}); tFit = true; });
+$('btn-run').addEventListener('click',      () => act({action:'run'}));
+$('btn-step-back').addEventListener('click', () => act({action:'step_back'}));
+$('btn-step-fwd').addEventListener('click',  () => act({action:'step'}));
+$('btn-cancel').addEventListener('click',    () => act({action:'cancel_algo'}));
+$('btn-clear').addEventListener('click',     () => act({action:'clear'}));
+$('btn-maze').addEventListener('click',          () => act({action:'maze'}));
+$('btn-weighted-maze').addEventListener('click', () => act({action:'weighted_maze'}));
+$('btn-reset').addEventListener('click',         () => act({action:'reset'}));
+$('btn-tree').addEventListener('click',      () => { act({action:'toggle_tree'}); tFit = true; });
+
+// Checkpoint / Options panel
+let cpPlaceMode = false;
+$('btn-cp-toggle').addEventListener('click', () => {
+  if (viz?.checkpoint) {
+    act({action:'remove_checkpoint'});
+  } else {
+    cpPlaceMode = !cpPlaceMode;
+    if (cpPlaceMode) setTerrainBrush(0);  // deactivate terrain when entering cp mode
+    $('btn-cp-toggle').classList.toggle('btn-selected', cpPlaceMode);
+  }
+});
+
+// Terrain brushes
+let terrainBrush = 0;
+function setTerrainBrush(type) {
+  terrainBrush = (terrainBrush === type) ? 0 : type;
+  if (terrainBrush) cpPlaceMode = false;  // deactivate cp mode
+  document.querySelectorAll('.btn-terrain').forEach(b => {
+    b.classList.toggle('btn-selected', +b.dataset.terrain === terrainBrush);
+  });
+}
+document.querySelectorAll('.btn-terrain').forEach(b => {
+  b.addEventListener('click', () => setTerrainBrush(+b.dataset.terrain));
+});
 
 $('btn-spd-down').addEventListener('click', () => {
   const v = Math.max(1, (viz?.speed || 20) - 5);
+  $('speed-val').textContent = v; $('speed-slider').value = v;
   act({action:'speed', value:v});
 });
 $('btn-spd-up').addEventListener('click', () => {
   const v = Math.min(200, (viz?.speed || 20) + 5);
+  $('speed-val').textContent = v; $('speed-slider').value = v;
   act({action:'speed', value:v});
 });
-$('speed-slider').addEventListener('input', e =>
-  act({action:'speed', value: +e.target.value}));
+$('speed-slider').addEventListener('input', e => {
+  $('speed-val').textContent = e.target.value;
+  act({action:'speed', value: +e.target.value});
+});
+
+// Race speed (same state.speed on backend)
+$('race-btn-spd-dn').addEventListener('click', () => {
+  const v = Math.max(1, (viz?.speed || 20) - 5);
+  $('race-speed-val').textContent = v; $('race-speed-slider').value = v;
+  act({action:'speed', value:v});
+});
+$('race-btn-spd-up').addEventListener('click', () => {
+  const v = Math.min(200, (viz?.speed || 20) + 5);
+  $('race-speed-val').textContent = v; $('race-speed-slider').value = v;
+  act({action:'speed', value:v});
+});
+$('race-speed-slider').addEventListener('input', e => {
+  $('race-speed-val').textContent = e.target.value;
+  act({action:'speed', value: +e.target.value});
+});
+
+// Race step / cancel
+$('race-btn-step-back').addEventListener('click', () => act({action:'race_step_back'}));
+$('race-btn-step-fwd').addEventListener('click',  () => act({action:'race_step'}));
+$('race-btn-cancel').addEventListener('click',    () => act({action:'race_cancel'}));
 
 $('btn-row-dn').addEventListener('click', () => act({action:'change_grid', dr:-1, dc:0}));
 $('btn-row-up').addEventListener('click', () => act({action:'change_grid', dr:1,  dc:0}));
@@ -146,16 +215,14 @@ $('btn-col-up').addEventListener('click', () => act({action:'change_grid', dr:0,
   });
 });
 
-$('btn-ss').addEventListener('click', () => act({action:'set_mode', mode:'start'}));
-$('btn-se').addEventListener('click', () => act({action:'set_mode', mode:'end'}));
-
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
-  if (e.key === 's') act({action:'set_mode', mode:'start'});
-  if (e.key === 'e') act({action:'set_mode', mode:'end'});
   if (e.key === ' ') { e.preventDefault(); act({action:'run'}); }
+  if (e.key === '.') act({action:'step'});
+  if (e.key === ',') act({action:'step_back'});
   if (e.key === 'r') act({action:'reset'});
+  if (e.key === 'Escape') act({action:'cancel_algo'});
   if (e.key === 't' && tab === 'visualize') { act({action:'toggle_tree'}); tFit = true; }
 });
 
@@ -163,29 +230,118 @@ document.addEventListener('keydown', e => {
 // ═══════════════════════════════════════════════════════════════
 // GRID CANVAS
 // ═══════════════════════════════════════════════════════════════
+function updateAnimations(newGrid, rows, cols) {
+  if (!prevGrid || prevGrid.length !== newGrid.length) {
+    prevGrid = newGrid.slice();
+    return;
+  }
+  const now = performance.now();
+  // Build path-index lookup for sequential reveal (start→end)
+  const pathIdx = new Map();
+  (viz?.path_cells || []).forEach(([r, c], i) => pathIdx.set(`${r},${c}`, i));
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      const oldT = prevGrid[i], newT = newGrid[i];
+      if (oldT === newT) continue;
+      const key = `${r},${c}`;
+      if (newT === 6) {
+        // Sequential path reveal start→end
+        const delay = (pathIdx.get(key) ?? 0) * 18;
+        animCells.set(key, { startTime: now + delay, duration: 320 });
+      } else {
+        animCells.delete(key);
+      }
+    }
+  }
+  prevGrid = newGrid.slice();
+}
+
 function drawGrid() {
   if (!viz) return;
   const { rows, cols, grid } = viz;
   const cw = gridCanvas.clientWidth, ch = gridCanvas.clientHeight;
-  const cell = Math.max(4, Math.min(Math.floor(cw / cols), Math.floor(ch / rows)));
+  const baseCellRaw = Math.min(cw / cols, ch / rows);
+  const cell = Math.max(1, Math.floor(baseCellRaw * gZoom));
   const gw = cols * cell, gh = rows * cell;
-  const ox = Math.floor((cw - gw) / 2), oy = Math.floor((ch - gh) / 2);
+  const ox = Math.floor((cw - gw) / 2) + gOffX, oy = Math.floor((ch - gh) / 2) + gOffY;
   gInfo = { rows, cols, cell, ox, oy };
 
   const ctx = gridCtx;
   ctx.fillStyle = '#F2F2F7';
   ctx.fillRect(0, 0, cw, ch);
 
+  const now = performance.now();
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const t = grid[r * cols + c];
+      let t = grid[r * cols + c];
+      // Drag overlay
+      if (dragType === 'start') {
+        if (t === 2) t = 0;
+        if (dragCell && r === dragCell.r && c === dragCell.c) t = 2;
+      } else if (dragType === 'end') {
+        if (t === 3) t = 0;
+        if (dragCell && r === dragCell.r && c === dragCell.c) t = 3;
+      } else if (dragType === 'checkpoint') {
+        if (t === 7) t = 0;
+        if (dragCell && r === dragCell.r && c === dragCell.c) t = 7;
+      }
+
       const x = ox + c * cell, y = oy + r * cell;
-      ctx.fillStyle = CELL_C[t];
-      ctx.fillRect(x, y, cell, cell);
+      const key = `${r},${c}`;
+      const anim = t === 6 ? animCells.get(key) : null;
+
+      if (anim && cell >= 4 && now >= anim.startTime) {
+        // Path cell animating: back ease-out (grow → slight overshoot → settle)
+        const elapsed  = now - anim.startTime;
+        const progress = Math.min(elapsed / anim.duration, 1);
+        if (progress >= 1) { animCells.delete(key); }
+        const c1 = 1.70158, c3 = c1 + 1;
+        const scale = Math.max(0, 1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2));
+
+        ctx.fillStyle = CELL_C[4]; // visited blue background
+        ctx.fillRect(x, y, cell, cell);
+
+        if (scale > 0) {
+          const s  = cell * scale;
+          const bx = x + (cell - s) / 2, by = y + (cell - s) / 2;
+          ctx.save();
+          ctx.beginPath(); ctx.rect(x, y, cell, cell); ctx.clip();
+          ctx.fillStyle = CELL_C[6];
+          const rad = s * 0.22;
+          ctx.beginPath();
+          ctx.roundRect(bx, by, s, s, rad);
+          ctx.fill();
+          ctx.restore();
+        }
+      } else {
+        // Pending path animation → show visited blue while waiting
+        ctx.fillStyle = (anim) ? CELL_C[4] : (CELL_C[t] || CELL_C[0]);
+        ctx.fillRect(x, y, cell, cell);
+      }
+
       if (cell >= 6) {
         ctx.strokeStyle = '#E5E5EA';
         ctx.lineWidth = .5;
         ctx.strokeRect(x + .25, y + .25, cell - .5, cell - .5);
+      }
+      // Glow ring on dragged marker
+      if (dragCell && r === dragCell.r && c === dragCell.c && dragType) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+        ctx.lineWidth = Math.max(1.5, cell * 0.12);
+        ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
+      }
+
+      // Cell coordinates when tree panel is open
+      if (viz.show_tree && cell >= 12) {
+        const fontSize = Math.max(6, Math.floor(cell * 0.28));
+        ctx.font = `${fontSize}px var(--font, sans-serif)`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const isLight = (t === 0 || t === 10);
+        ctx.fillStyle = isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.55)';
+        ctx.fillText(`${r},${c}`, x + cell / 2, y + cell / 2);
       }
     }
   }
@@ -201,18 +357,101 @@ function gridPos(e) {
 }
 
 gridCanvas.addEventListener('mousedown', e => {
+  if (e.button === 1) {
+    gPanDrag = { sx: e.clientX, sy: e.clientY, ox: gOffX, oy: gOffY };
+    e.preventDefault();
+    return;
+  }
   const p = gridPos(e);
-  if (!p) return;
+  // Terrain paint mode — left click paints, right click erases
+  if (terrainBrush > 0 && p && !viz?.running) {
+    mDown = true; mBtn = e.button;
+    act({action:'set_terrain', r:p.r, c:p.c, terrain: e.button === 2 ? 0 : terrainBrush});
+    return;
+  }
+  // Drag start / end / checkpoint — takes priority
+  if (e.button === 0 && p && !viz?.running) {
+    const t = viz?.grid?.[p.r * (viz?.cols ?? 0) + p.c];
+    if (t === 2) {
+      dragType = 'start'; dragCell = { ...p }; lastDragSent = { ...p };
+      document.body.style.cursor = 'grabbing'; return;
+    }
+    if (t === 3) {
+      dragType = 'end'; dragCell = { ...p }; lastDragSent = { ...p };
+      document.body.style.cursor = 'grabbing'; return;
+    }
+    if (t === 7) {
+      dragType = 'checkpoint'; dragCell = { ...p }; lastDragSent = { ...p };
+      document.body.style.cursor = 'grabbing'; return;
+    }
+  }
+  // Shift+click or cpPlaceMode: place or remove checkpoint
+  if (e.button === 0 && (e.shiftKey || cpPlaceMode) && p && !viz?.running) {
+    const t = viz?.grid?.[p.r * (viz?.cols ?? 0) + p.c];
+    if (t === 7) { act({action:'remove_checkpoint'}); }
+    else if (t !== 2 && t !== 3) { act({action:'set_checkpoint', r:p.r, c:p.c}); }
+    if (cpPlaceMode) { cpPlaceMode = false; $('btn-cp-toggle').classList.remove('btn-selected'); }
+    return;
+  }
+  if (viz?.show_tree) {
+    if (e.button === 0) gPanDrag = { sx: e.clientX, sy: e.clientY, ox: gOffX, oy: gOffY };
+    return;
+  }
+  // Outside grid area → pan
+  if (!p) {
+    if (e.button === 0) gPanDrag = { sx: e.clientX, sy: e.clientY, ox: gOffX, oy: gOffY };
+    return;
+  }
   mDown = true; mBtn = e.button;
   act({action:'grid_cell', r:p.r, c:p.c, remove: e.button === 2});
 });
 gridCanvas.addEventListener('mousemove', e => {
+  // Update hover cursor (grab over start/end cells)
+  if (!mDown && !dragType && !viz?.show_tree) {
+    const p = gridPos(e);
+    if (p && viz?.grid && !viz.running) {
+      const t = viz.grid[p.r * viz.cols + p.c];
+      gridCanvas.style.cursor = (t === 2 || t === 3 || t === 7) ? 'grab' : '';
+    } else {
+      gridCanvas.style.cursor = '';
+    }
+  }
   if (!mDown) return;
   const p = gridPos(e);
-  if (p) act({action:'grid_cell', r:p.r, c:p.c, remove: mBtn === 2});
+  if (!p) return;
+  if (terrainBrush > 0) {
+    act({action:'set_terrain', r:p.r, c:p.c, terrain: mBtn === 2 ? 0 : terrainBrush});
+  } else {
+    act({action:'grid_cell', r:p.r, c:p.c, remove: mBtn === 2});
+  }
 });
-document.addEventListener('mouseup', () => { mDown = false; });
+document.addEventListener('mouseup', () => {
+  dragType = null; dragCell = null; lastDragSent = null;
+  document.body.style.cursor = '';
+  mDown = false; gPanDrag = null; tDrag = null;
+});
 gridCanvas.addEventListener('contextmenu', e => e.preventDefault());
+
+gridCanvas.addEventListener('wheel', e => {
+  if (tab !== 'visualize') return;
+  e.preventDefault();
+  const f = e.deltaY < 0 ? 1.12 : 0.88;
+  const rect = gridCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const { cell: oldCell, ox: oldOx, oy: oldOy, cols, rows } = gInfo;
+  if (!oldCell || !cols) return;
+  const cw = gridCanvas.clientWidth, ch = gridCanvas.clientHeight;
+  const newZoom = Math.max(0.3, Math.min(20, gZoom * f));
+  const baseCellRaw = Math.min(cw / cols, ch / rows);
+  const newCell = Math.max(1, Math.floor(baseCellRaw * newZoom));
+  const newCenterOx = Math.floor((cw - cols * newCell) / 2);
+  const newCenterOy = Math.floor((ch - rows * newCell) / 2);
+  gOffX = Math.round(mx - (mx - oldOx) * newCell / oldCell) - newCenterOx;
+  gOffY = Math.round(my - (my - oldOy) * newCell / oldCell) - newCenterOy;
+  gZoom = newZoom;
+}, { passive: false });
+
+gridCanvas.addEventListener('dblclick', () => { gZoom = 1; gOffX = 0; gOffY = 0; });
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -310,11 +549,25 @@ treeCanvas.addEventListener('mousedown', e => {
   tDrag = { sx: e.clientX, sy: e.clientY, ox: tOx, oy: tOy };
 });
 document.addEventListener('mousemove', e => {
-  if (!tDrag) return;
-  tOx = tDrag.ox + e.clientX - tDrag.sx;
-  tOy = tDrag.oy + e.clientY - tDrag.sy;
+  // Drag start/end marker
+  if (dragType) {
+    const p = gridPos(e);
+    if (p && (p.r !== lastDragSent?.r || p.c !== lastDragSent?.c)) {
+      dragCell = { ...p };
+      lastDragSent = { ...p };
+      const actionMap = { start:'set_start', end:'set_end', checkpoint:'set_checkpoint' };
+      act({ action: actionMap[dragType], r: p.r, c: p.c });
+    }
+  }
+  if (gPanDrag) {
+    gOffX = gPanDrag.ox + e.clientX - gPanDrag.sx;
+    gOffY = gPanDrag.oy + e.clientY - gPanDrag.sy;
+  }
+  if (tDrag) {
+    tOx = tDrag.ox + e.clientX - tDrag.sx;
+    tOy = tDrag.oy + e.clientY - tDrag.sy;
+  }
 });
-document.addEventListener('mouseup', () => { tDrag = null; });
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -323,10 +576,36 @@ document.addEventListener('mouseup', () => { tDrag = null; });
 function updateVizUI() {
   if (!viz) return;
 
-  // Run button
+  // Run button state
   const rb = $('btn-run');
-  rb.textContent = viz.running ? 'Pause' : 'Run';
-  rb.className = 'btn btn-run' + (viz.running ? ' pausing' : '');
+  const isActive = viz.running || viz.paused;
+  if (viz.running) {
+    rb.textContent = 'Pause'; rb.className = 'btn btn-run pausing';
+  } else if (viz.paused && !viz.finished) {
+    rb.textContent = 'Continue'; rb.className = 'btn btn-run btn-continue';
+  } else {
+    rb.textContent = 'Run'; rb.className = 'btn btn-run';
+  }
+  $('btn-step-back').disabled = (viz.step_ptr ?? -1) < 1 || viz.finished;
+  $('btn-step-fwd').disabled  = viz.running || viz.finished || viz.maze_running;
+  $('btn-cancel').classList.toggle('hidden', !isActive && !viz.finished);
+
+  // Maze button
+  $('btn-maze').textContent = viz.maze_running ? 'Generating…' : 'Generate Maze';
+  $('btn-maze').disabled = !!viz.maze_running;
+
+  // Options panel — checkpoint toggle button
+  const hasCp = !!viz.checkpoint;
+  $('cp-label').textContent = hasCp ? 'Cancel Checkpoint' : 'Checkpoint';
+  $('btn-cp-toggle').style.cssText = hasCp
+    ? 'background:#FFF3CD;border-color:#FFD60A;color:#7A5F00'
+    : '';
+  if (hasCp) {
+    $('btn-cp-toggle').classList.remove('btn-selected');
+    cpPlaceMode = false;
+  } else {
+    $('btn-cp-toggle').classList.toggle('btn-selected', cpPlaceMode);
+  }
 
   // Stats
   $('st-nodes').textContent = viz.stats.nodes;
@@ -340,9 +619,11 @@ function updateVizUI() {
   else if (viz.stats.found===false) { st.textContent = 'No Path';    st.style.color = '#FF3B30'; }
   else st.textContent = '';
 
-  // Speed
+  // Speed (sync both ribbons)
   $('speed-val').textContent = viz.speed;
   $('speed-slider').value = viz.speed;
+  $('race-speed-val').textContent = viz.speed;
+  $('race-speed-slider').value = viz.speed;
 
   // Grid size
   if (document.activeElement !== $('inp-rows')) $('inp-rows').value = viz.rows;
@@ -350,7 +631,6 @@ function updateVizUI() {
 
   // Algo
   $('algo-name').textContent = ALG_NAMES[viz.cur_alg];
-  $('algo-full').textContent = ALG_FULL[viz.cur_alg];
 
   // Dropdown selected indicator
   document.querySelectorAll('.dd-item').forEach((d, i) => {
@@ -362,10 +642,6 @@ function updateVizUI() {
       if (ck) ck.remove();
     }
   });
-
-  // Set Start/End selection
-  $('btn-ss').classList.toggle('btn-selected', viz.set_mode === 'start');
-  $('btn-se').classList.toggle('btn-selected', viz.set_mode === 'end');
 
   // Tree button
   const tb = $('btn-tree');
@@ -380,6 +656,16 @@ function updateVizUI() {
   // Split view
   $('grid-area').classList.toggle('split', !!viz.show_tree);
   $('tree-area').classList.toggle('hidden', !viz.show_tree);
+
+  // Move legend: grid-area when normal, tree-area when tree is open
+  const legend = document.querySelector('.grid-legend');
+  if (legend) {
+    const target = viz.show_tree ? $('tree-area') : $('grid-area');
+    if (legend.parentElement !== target) target.appendChild(legend);
+  }
+
+  // Pan cursor when tree is shown (wall drawing disabled)
+  gridCanvas.classList.toggle('pan-mode', !!viz.show_tree);
 }
 
 
@@ -403,8 +689,7 @@ buildRaceToggles();
 
 $('btn-race').addEventListener('click', () => {
   if (!race) return;
-  if (race.running) act({action:'race_stop'});
-  else if (race.order.length >= 2) act({action:'race_start'});
+  act({action:'race_start'});
 });
 
 function updateRaceUI() {
@@ -424,21 +709,21 @@ function updateRaceUI() {
     }
   });
 
-  // Race button
+  // Race button (mirrors Visualize Run button)
   const rb = $('btn-race');
   if (race.running) {
-    rb.textContent = 'Stop Race';
-    rb.className = 'btn btn-race stop';
-    rb.disabled = false;
+    rb.textContent = 'Pause'; rb.className = 'btn btn-run pausing'; rb.disabled = false;
+  } else if (race.paused && !race.done) {
+    rb.textContent = 'Continue'; rb.className = 'btn btn-run btn-continue'; rb.disabled = false;
   } else if (race.order.length >= 2) {
-    rb.textContent = `Start Race (${race.order.length})`;
-    rb.className = 'btn btn-race ready';
-    rb.disabled = false;
+    rb.textContent = 'Race'; rb.className = 'btn btn-run'; rb.disabled = false;
   } else {
-    rb.textContent = 'Select 2+ algos';
-    rb.className = 'btn btn-race';
-    rb.disabled = true;
+    rb.textContent = 'Race'; rb.className = 'btn btn-run'; rb.disabled = true;
   }
+  const raceActive = race.running || (race.paused && !race.done);
+  $('race-btn-step-back').disabled = (race.step_ptr ?? -1) < 1 || race.done || race.running;
+  $('race-btn-step-fwd').disabled  = race.running || race.done;
+  $('race-btn-cancel').classList.toggle('hidden', !raceActive && !race.done);
 
   // Panels
   buildRacePanels();
@@ -467,9 +752,12 @@ function buildRacePanels() {
   const rows = Math.ceil(n / cols);
   cont.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-  // Calculate panel canvas height to fill available space
+  // Fix panel section height to viewport so charts don't crop panels
   const contentEl = $('content-race');
-  const availH = contentEl.clientHeight - 16;
+  const panelsSectionH = contentEl.clientHeight - 16;
+  cont.style.height = panelsSectionH + 'px';
+  cont.style.flexShrink = '0';
+  const availH = panelsSectionH;
   const hdrH = 36;  // panel header height
   const gapTotal = (rows - 1) * 10;
   const panelH = Math.max(120, Math.floor((availH - gapTotal) / rows));
@@ -642,6 +930,12 @@ async function poll() {
   try {
     if (tab === 'visualize') {
       viz = await (await fetch('/api/state')).json();
+      if (viz.rows !== lastVizRows || viz.cols !== lastVizCols) {
+        gZoom = 1; gOffX = 0; gOffY = 0;
+        lastVizRows = viz.rows; lastVizCols = viz.cols;
+        prevGrid = null; animCells.clear();
+      }
+      if (viz.grid) updateAnimations(viz.grid, viz.rows, viz.cols);
       updateVizUI();
 
       if (viz.show_tree) {

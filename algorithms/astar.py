@@ -1,7 +1,7 @@
 import time
 import heapq
 from config import state
-from grid import get_neighbors, reconstruct_path, heuristic, next_id
+from grid import get_neighbors, reconstruct_path, heuristic, next_id, get_terrain_cost
 
 
 def algo_astar():
@@ -32,7 +32,7 @@ def algo_astar():
             return
 
         for nb in get_neighbors(*curr):
-            tentative = g_score[curr] + 1
+            tentative = g_score[curr] + get_terrain_cost(nb)
             if tentative < g_score.get(nb, float('inf')):
                 g_score[nb] = tentative
                 came_from[nb] = curr

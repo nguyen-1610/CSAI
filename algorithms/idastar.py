@@ -1,6 +1,6 @@
 import time
 from config import state
-from grid import get_neighbors, reconstruct_path, heuristic
+from grid import get_neighbors, reconstruct_path, heuristic, get_terrain_cost, path_cost
 
 
 def algo_idastar():
@@ -44,7 +44,8 @@ def algo_idastar():
             if nb in path_set:
                 continue
 
-            f = (g + 1) + heuristic(nb, e)
+            step = get_terrain_cost(nb)
+            f = (g + step) + heuristic(nb, e)
             if f > threshold:
                 if f < min_exceeded:
                     min_exceeded = f
@@ -62,13 +63,13 @@ def algo_idastar():
                 break
 
             nb_children = [c for c in get_neighbors(*nb) if c not in path_set]
-            stack.append((nb, g + 1, 0, nb_children))
+            stack.append((nb, g + step, 0, nb_children))
 
         if found:
             p = reconstruct_path(came_from, e)
             state.path_cells = p
             state.stats.update(nodes=len(total_visited), path=len(p),
-                               cost=len(p) - 1, time=time.perf_counter() - t0, found=True)
+                               cost=path_cost(p), time=time.perf_counter() - t0, found=True)
             state.came_from = came_from
             state.finished = True
             return

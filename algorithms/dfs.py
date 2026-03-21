@@ -1,7 +1,7 @@
 import time
 from collections import deque
 from config import state
-from grid import get_neighbors, reconstruct_path
+from grid import get_neighbors, reconstruct_path, path_cost
 
 
 def algo_dfs():
@@ -21,7 +21,7 @@ def algo_dfs():
             p = reconstruct_path(came_from, e)
             state.path_cells = p
             state.stats.update(nodes=len(visited), path=len(p),
-                               cost=len(p)-1, time=time.perf_counter()-t0, found=True)
+                               cost=path_cost(p), time=time.perf_counter()-t0, found=True)
             state.came_from = came_from
             state.finished = True
             return

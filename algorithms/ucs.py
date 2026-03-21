@@ -1,7 +1,7 @@
 import time
 import heapq
 from config import state
-from grid import get_neighbors, reconstruct_path, next_id
+from grid import get_neighbors, reconstruct_path, next_id, get_terrain_cost
 
 
 def algo_ucs():
@@ -37,7 +37,7 @@ def algo_ucs():
             return
 
         for nb in get_neighbors(*curr):
-            new_cost = cost + 1  # trọng số mỗi cạnh = 1 (uniform)
+            new_cost = cost + get_terrain_cost(nb)
             # Chỉ cập nhật nếu tìm được đường rẻ hơn đường đã biết trước đó
             if nb not in cost_so_far or new_cost < cost_so_far[nb]:
                 cost_so_far[nb] = new_cost

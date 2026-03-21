@@ -37,54 +37,107 @@ def next_id():
 
 
 # ─────────────────────────────────────────────
+# TERRAIN / WEIGHTED COSTS
+# ─────────────────────────────────────────────
+# cell type → movement cost  (8=deep water, 9=swamp, 10=grass)
+TERRAIN_COSTS = {8: 10, 9: 5, 10: 2}
+
+def get_terrain_cost(pos):
+    """Returns movement cost to enter a cell (default 1 for empty/road)."""
+    return TERRAIN_COSTS.get(state.terrain.get(pos), 1)
+
+def path_cost(path):
+    """Actual terrain-weighted cost of a path (sum of entry costs, skipping start)."""
+    return sum(get_terrain_cost(cell) for cell in path[1:])
+
+
+# ─────────────────────────────────────────────
 # MAZE GENERATION  (Recursive Division)
 # ─────────────────────────────────────────────
 def generate_maze():
     rows, cols = state.rows, state.cols
     state.walls = set()
-    # Tạo tường bao quanh (viền ngoài)
     for r in range(rows):
-        state.walls.add((r, 0))
-        state.walls.add((r, cols - 1))
+        state.walls.add((r, 0));  state.walls.add((r, cols - 1))
     for c in range(cols):
-        state.walls.add((0, c))
-        state.walls.add((rows - 1, c))
+        state.walls.add((0, c));  state.walls.add((rows - 1, c))
 
     def divide(r1, c1, r2, c2):
-        w = c2 - c1
-        h = r2 - r1
-        if w < 2 or h < 2:
-            return
+        w = c2 - c1;  h = r2 - r1
+        if w < 2 or h < 2:  return
         horizontal = h > w if h != w else random.random() < 0.5
-
         if horizontal:
-            wall_rows = list(range(r1 + 1, r2, 2)) or [r1 + 1]
-            wr = random.choice(wall_rows)
-            pass_cols = list(range(c1, c2 + 1, 2)) or [random.randrange(c1, c2 + 1)]
-            pc = random.choice(pass_cols)
+            wr = random.choice(list(range(r1 + 1, r2, 2)) or [r1 + 1])
+            pc = random.choice(list(range(c1, c2 + 1, 2)) or [random.randrange(c1, c2 + 1)])
             for c in range(c1, c2 + 1):
-                if c != pc:
-                    state.walls.add((wr, c))
-            divide(r1, c1, wr - 1, c2)
-            divide(wr + 1, c1, r2, c2)
+                if c != pc:  state.walls.add((wr, c))
+            divide(r1, c1, wr - 1, c2);  divide(wr + 1, c1, r2, c2)
         else:
-            wall_cols = list(range(c1 + 1, c2, 2)) or [c1 + 1]
-            wc = random.choice(wall_cols)
-            pass_rows = list(range(r1, r2 + 1, 2)) or [random.randrange(r1, r2 + 1)]
-            pr = random.choice(pass_rows)
+            wc = random.choice(list(range(c1 + 1, c2, 2)) or [c1 + 1])
+            pr = random.choice(list(range(r1, r2 + 1, 2)) or [random.randrange(r1, r2 + 1)])
             for r in range(r1, r2 + 1):
-                if r != pr:
-                    state.walls.add((r, wc))
-            divide(r1, c1, r2, wc - 1)
-            divide(r1, wc + 1, r2, c2)
+                if r != pr:  state.walls.add((r, wc))
+            divide(r1, c1, r2, wc - 1);  divide(r1, wc + 1, r2, c2)
 
     divide(1, 1, rows - 2, cols - 2)
+    _clear_around_markers(rows, cols)
 
-    for dr in range(-1, 2):
-        for dc in range(-1, 2):
-            sr, sc = state.start_cell[0] + dr, state.start_cell[1] + dc
-            er, ec = state.end_cell[0]   + dr, state.end_cell[1]   + dc
-            if 0 < sr < rows - 1 and 0 < sc < cols - 1:
-                state.walls.discard((sr, sc))
-            if 0 < er < rows - 1 and 0 < ec < cols - 1:
-                state.walls.discard((er, ec))
+
+def generate_maze_gen():
+    """Animated maze generation — reveals walls in clockwise spiral order."""
+    rows, cols = state.rows, state.cols
+    # Compute the complete maze first
+    generate_maze()
+    target_walls = frozenset(state.walls)
+    state.walls = set()          # reset; animation will fill it in
+
+    # Build clockwise spiral traversal of all cells (outside → inside)
+    spiral = []
+    top, bottom, left, right = 0, rows - 1, 0, cols - 1
+    while top <= bottom and left <= right:
+        for c in range(left, right + 1):       spiral.append((top,    c))
+        for r in range(top + 1, bottom + 1):   spiral.append((r,      right))
+        if top < bottom:
+            for c in range(right - 1, left - 1, -1): spiral.append((bottom, c))
+        if left < right:
+            for r in range(bottom - 1, top, -1):     spiral.append((r,      left))
+        top += 1; bottom -= 1; left += 1; right -= 1
+
+    for pos in spiral:
+        if pos in target_walls:
+            state.walls.add(pos)
+            yield                # yield after each wall cell
+
+
+def generate_plain_terrain():
+    """Fill the entire grid with random terrain — no walls at all."""
+    state.walls.clear()
+    markers = {state.start_cell, state.end_cell}
+    if state.checkpoint_cell:
+        markers.add(state.checkpoint_cell)
+    state.terrain = {}
+    for r in range(state.rows):
+        for c in range(state.cols):
+            pos = (r, c)
+            if pos not in markers:
+                rnd = random.random()
+                if rnd < 0.18:
+                    state.terrain[pos] = 8    # deep water (18%)
+                elif rnd < 0.42:
+                    state.terrain[pos] = 9    # swamp (24%)
+                elif rnd < 0.72:
+                    state.terrain[pos] = 10   # grass (30%)
+                # else: road/empty (28%)
+
+
+def _clear_around_markers(rows, cols):
+    """Remove walls in the 3×3 area around start, end, and checkpoint."""
+    pts = [state.start_cell, state.end_cell]
+    if state.checkpoint_cell:
+        pts.append(state.checkpoint_cell)
+    for pt in pts:
+        for dr in range(-1, 2):
+            for dc in range(-1, 2):
+                r, c = pt[0] + dr, pt[1] + dc
+                if 0 < r < rows - 1 and 0 < c < cols - 1:
+                    state.walls.discard((r, c))

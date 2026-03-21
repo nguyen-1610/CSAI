@@ -22,8 +22,10 @@ class State:
         self.rows        = ROWS
         self.cols        = COLS
         self.walls       = set()
-        self.start_cell  = (4, 4)
-        self.end_cell    = (self.rows - 5, self.cols - 5)
+        self.terrain     = {}    # (r,c) → cell type: 8=water 9=swamp 10=grass
+        self.start_cell      = (4, 4)
+        self.end_cell        = (self.rows - 5, self.cols - 5)
+        self.checkpoint_cell = None
 
         self.vis_cells   = set()
         self.front_cells = set()
@@ -32,7 +34,7 @@ class State:
         self.running     = False
         self.finished    = False
         self.cur_alg     = 0
-        self.set_mode    = None    # None | 'start' | 'end'
+        self.set_mode    = None    # None | 'start' | 'end' | 'checkpoint'
         self.speed       = 20
         self.alg_gen     = None
         self._counter    = [0]
@@ -40,6 +42,13 @@ class State:
         self.stats = {"nodes": 0, "path": 0, "cost": 0, "time": 0.0, "found": None}
         self.run_history = []
         self.came_from   = {}
+
+        self.step_history = []   # list of (vis_copy, front_copy) for step-back
+        self.step_ptr     = -1   # pointer into step_history
+        self.paused       = False
+
+        # Used by _checkpoint_wrap so the display keeps green at orig_start during phase 2
+        self.phase2_orig_start = None
 
     def clear_search(self):
         self.running = False
@@ -55,6 +64,10 @@ class State:
         self.stats       = {"nodes": 0, "path": 0, "cost": 0, "time": 0.0, "found": None}
         self.finished    = False
         self.came_from   = {}
+        self.step_history = []
+        self.step_ptr     = -1
+        self.paused       = False
+        self.phase2_orig_start = None
 
     def start_algorithm(self, func):
         self.clear_search()
