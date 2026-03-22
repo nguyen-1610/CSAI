@@ -96,7 +96,7 @@
 }
 .chart {
   width: 100%;
-  height: 180px;
+  height: 150px;
   background: var(--white);
   border-radius: 14px;
   box-shadow: var(--shadow-md);

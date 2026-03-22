@@ -10,13 +10,10 @@ except ImportError:
 
 from algorithms import ALG_NAMES, ALG_FULL
 from core.runner import (
-    get_last_algorithm_name,
     get_race_state,
     get_visual_state,
     handle_action,
-    is_tree_visible,
 )
-from core.tree import get_tree_data
 
 DEBUG_MODE = os.environ.get("MAZE_DEBUG", "1") != "0"
 
@@ -42,13 +39,6 @@ def api_state():
 @app.route("/api/race")
 def api_race():
     return jsonify(get_race_state())
-
-
-@app.route("/api/tree")
-def api_tree():
-    if not is_tree_visible():
-        return jsonify(None)
-    return jsonify(get_tree_data(get_last_algorithm_name()))
 
 
 @app.route("/api/action", methods=["POST"])

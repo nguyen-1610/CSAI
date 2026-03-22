@@ -37,6 +37,7 @@ const App = (() => {
 
   function switchTab(tab) {
     state.tab = tab;
+    act({ action: 'switch_tab', tab: tab });
     document.querySelectorAll('.tab').forEach(button => {
       button.classList.toggle('active', button.dataset.tab === tab);
     });

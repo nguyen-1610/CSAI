@@ -113,7 +113,7 @@ window.RacePage = (() => {
     const mx = Math.max(...vals) || 1;
 
     const gap = 5;
-    const barH = Math.min(28, Math.max(14, (ch - (n - 1) * gap) / n));
+    const barH = Math.min(20, Math.max(12, (ch - (n - 1) * gap) / n));
     const startY = mt + (ch - (n * barH + (n - 1) * gap)) / 2;
 
     for (let i = 0; i < n; i++) {
@@ -125,6 +125,12 @@ window.RacePage = (() => {
       ctx.beginPath();
       ctx.roundRect(ml, by, bw, barH, 4);
       ctx.fill();
+
+      ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(ml, by, bw, barH, 4);
+      ctx.stroke();
 
       ctx.font = '600 13px -apple-system, sans-serif';
       ctx.fillStyle = '#000';
@@ -303,13 +309,13 @@ window.RacePage = (() => {
     $('race-btn-cancel').addEventListener('click', () => act({action:'race_cancel'}));
 
     $('race-btn-spd-dn').addEventListener('click', () => {
-      const v = Math.max(1, (state.viz?.speed || 20) - 5);
+      const v = Math.max(1, (state.viz?.speed || 20) - 1);
       $('race-speed-val').textContent = v;
       $('race-speed-slider').value = v;
       act({action:'speed', value:v});
     });
     $('race-btn-spd-up').addEventListener('click', () => {
-      const v = Math.min(200, (state.viz?.speed || 20) + 5);
+      const v = Math.min(400, (state.viz?.speed || 20) + 1);
       $('race-speed-val').textContent = v;
       $('race-speed-slider').value = v;
       act({action:'speed', value:v});

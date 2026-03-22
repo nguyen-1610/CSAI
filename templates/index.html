@@ -27,7 +27,7 @@
               <div class="speed-row">
                 <button class="btn btn-icon" id="btn-spd-down">&minus;</button>
                 <input type="range" class="speed-slider" id="speed-slider"
-                       min="1" max="200" value="20">
+                       min="1" max="400" value="20">
                 <button class="btn btn-icon" id="btn-spd-up">+</button>
               </div>
             </div>
@@ -67,9 +67,9 @@
       <div class="rib-group rib-group-edit">
         <div class="rib-body edit-grid">
           <button class="btn btn-sm" id="btn-clear">Clear Path</button>
-          <button class="btn btn-sm" id="btn-maze">Generate Maze</button>
+          <button class="btn btn-sm" id="btn-maze">Basic Maze</button>
           <button class="btn btn-sm" id="btn-weighted-maze">Weighted Maze</button>
-          <button class="btn btn-sm btn-danger" id="btn-reset">Reset All</button>
+<button class="btn btn-sm btn-danger" id="btn-reset">Reset All</button>
         </div>
         <div class="rib-label">Edit</div>
       </div>
@@ -135,7 +135,7 @@
           <div class="speed-header">Speed &mdash; <span id="race-speed-val">20</span></div>
           <div class="speed-row">
             <button class="btn btn-icon" id="race-btn-spd-dn">&minus;</button>
-            <input type="range" class="speed-slider" id="race-speed-slider" min="1" max="200" value="20">
+            <input type="range" class="speed-slider" id="race-speed-slider" min="1" max="400" value="20">
             <button class="btn btn-icon" id="race-btn-spd-up">+</button>
           </div>
         </div>
@@ -152,23 +152,7 @@
         <div class="grid-area" id="grid-area">
           <canvas id="grid-canvas"></canvas>
         </div>
-        <div class="tree-area hidden" id="tree-area">
-          <div class="tree-hdr">
-            <span id="tree-info">Exploration tree</span>
-            <div class="tree-tools">
-              <span id="tree-hint">Scroll=zoom  Drag=pan</span>
-              <button class="btn btn-sm btn-tree-close hidden" id="btn-tree-close">Hide Tree</button>
-            </div>
-          </div>
-          <canvas id="tree-canvas"></canvas>
-          <div class="tree-legend">
-            <span class="leg"><span class="dot" style="background:#34C759"></span>Start</span>
-            <span class="leg"><span class="dot" style="background:#FF3B30"></span>End</span>
-            <span class="leg"><span class="dot" style="background:#FFD60A"></span>Checkpoint</span>
-            <span class="leg"><span class="dot" style="background:#FF9500"></span>Path</span>
-            <span class="leg"><span class="dot" style="background:#AFC8F0"></span>Explored</span>
-          </div>
-        </div>
+
       </div>
       <aside class="viz-sidebar" id="viz-sidebar">
         <section class="side-panel side-panel-stats">
@@ -193,9 +177,7 @@
           </div>
           <div class="stat-status" id="st-status"></div>
         </section>
-        <section class="side-panel side-panel-tree">
-          <button class="btn btn-accent hidden" id="btn-tree">Show Tree</button>
-        </section>
+
         <section class="side-panel side-panel-legend">
           <div class="side-title">Legend</div>
           <div class="grid-legend">

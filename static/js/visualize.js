@@ -14,24 +14,17 @@ window.VisualizePage = (() => {
     '#8B5E3C',
     '#8BC34A',
   ];
-  const NODE_GAP = 38;
-  const LEVEL_GAP = 80;
-
   let gridCanvas;
   let gridCtx;
-  let treeCanvas;
-  let treeCtx;
 
   let mDown = false;
   let mBtn = 0;
   let gInfo = { rows:0, cols:0, cell:0, ox:0, oy:0 };
 
-  let tZoom = 1;
-  let tOx = 0;
-  let tOy = 0;
-  let tDrag = null;
-  let tFit = true;
-  let tFocusRoot = false;
+  let gZoom = 1;
+  let gPanX = 0;
+  let gPanY = 0;
+  let gDrag = null;
 
   let ddOpen = false;
 
@@ -47,16 +40,11 @@ window.VisualizePage = (() => {
 
   let prevGrid = null;
   const animCells = new Map();
-  let lastTreeVisible = false;
 
   const { $, act, fitCanvas, state } = window.App;
 
   function vizState() {
     return state.viz;
-  }
-
-  function treeState() {
-    return state.treeData;
   }
 
   function setTerrainBrush(type) {
@@ -117,11 +105,15 @@ window.VisualizePage = (() => {
     const cw = gridCanvas.clientWidth;
     const ch = gridCanvas.clientHeight;
     const baseCellRaw = Math.min(cw / cols, ch / rows);
-    const cell = Math.max(1, Math.floor(baseCellRaw));
+    const baseCell = Math.max(1, Math.floor(baseCellRaw));
+    const viewMode = !!viz.finished;
+    const cell = viewMode ? Math.max(1, Math.floor(baseCell * gZoom)) : baseCell;
     const gw = cols * cell;
     const gh = rows * cell;
-    const ox = Math.floor((cw - gw) / 2);
-    const oy = Math.floor((ch - gh) / 2);
+    const basOx = Math.floor((cw - gw) / 2);
+    const basOy = Math.floor((ch - gh) / 2);
+    const ox = viewMode ? basOx + Math.round(gPanX) : basOx;
+    const oy = viewMode ? basOy + Math.round(gPanY) : basOy;
     gInfo = { rows, cols, cell, ox, oy };
 
     gridCtx.fillStyle = '#F2F2F7';
@@ -189,15 +181,6 @@ window.VisualizePage = (() => {
           gridCtx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
         }
 
-        if (viz.show_tree && cell >= 12) {
-          const fontSize = Math.max(6, Math.floor(cell * 0.28));
-          gridCtx.font = `${fontSize}px var(--font, sans-serif)`;
-          gridCtx.textAlign = 'center';
-          gridCtx.textBaseline = 'middle';
-          const isLight = t === 0 || t === 10;
-          gridCtx.fillStyle = isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.55)';
-          gridCtx.fillText(`${r},${c}`, x + cell / 2, y + cell / 2);
-        }
       }
     }
   }
@@ -210,105 +193,6 @@ window.VisualizePage = (() => {
     const c = Math.floor((mx - ox) / cell);
     const r = Math.floor((my - oy) / cell);
     return (r >= 0 && r < rows && c >= 0 && c < cols) ? { r, c } : null;
-  }
-
-  function autoFitTree(data, w, h) {
-    if (!data || !data.bounds) return;
-    const [bw, bh] = data.bounds;
-    if (bw <= 0 || bh <= 0) return;
-    const pad = 28;
-    const tw = bw * NODE_GAP;
-    const th = bh * LEVEL_GAP;
-    tZoom = Math.min((w - pad * 2) / Math.max(tw, 1), (h - pad * 2) / Math.max(th, 1), 2.5);
-    tZoom = Math.max(tZoom, 0.08);
-    tOx = (w - tw * tZoom) / 2;
-    tOy = pad;
-  }
-
-  function focusTreeRoot(data, w, h) {
-    if (!data || !data.positions?.length) return;
-    const root = data.positions.find(pos =>
-      pos.node[0] === data.start[0] && pos.node[1] === data.start[1]
-    ) || data.positions[0];
-    if (!root) return;
-    tZoom = Math.max(1, Math.min((w - 80) / (NODE_GAP * 8), 2.2));
-    tOx = w / 2 - root.x * NODE_GAP * tZoom;
-    tOy = 46 - root.y * LEVEL_GAP * tZoom;
-  }
-
-  function drawTree() {
-    const treeData = treeState();
-    if (!treeData || !treeData.positions.length) return;
-    const w = treeCanvas.clientWidth;
-    const h = treeCanvas.clientHeight;
-
-    if (tFocusRoot) {
-      focusTreeRoot(treeData, w, h);
-      tFocusRoot = false;
-      tFit = false;
-    } else if (tFit) {
-      autoFitTree(treeData, w, h);
-      tFit = false;
-    }
-
-    treeCtx.fillStyle = '#F8F9FC';
-    treeCtx.fillRect(0, 0, w, h);
-
-    const nodes = {};
-    for (const pos of treeData.positions) {
-      const key = pos.node.join(',');
-      nodes[key] = {
-        x: tOx + pos.x * NODE_GAP * tZoom,
-        y: tOy + pos.y * LEVEL_GAP * tZoom,
-        ip: pos.ip,
-        node: pos.node,
-      };
-    }
-    const startK = treeData.start.join(',');
-    const endK = treeData.end.join(',');
-    const baseR = Math.max(12, 18 * tZoom);
-    const specR = Math.max(16, 22 * tZoom);
-
-    for (const edge of treeData.edges) {
-      const a = nodes[edge.from.join(',')];
-      const b = nodes[edge.to.join(',')];
-      if (!a || !b) continue;
-      treeCtx.beginPath();
-      treeCtx.moveTo(a.x, a.y);
-      treeCtx.lineTo(b.x, b.y);
-      treeCtx.strokeStyle = edge.ip ? '#FF9500' : '#D2DEF0';
-      treeCtx.lineWidth = edge.ip ? Math.max(2, 3 * tZoom) : Math.max(1, 1.2 * tZoom);
-      treeCtx.stroke();
-    }
-
-    for (const [key, node] of Object.entries(nodes)) {
-      const isS = key === startK;
-      const isE = key === endK;
-      const radius = (isS || isE) ? specR : baseR;
-      treeCtx.beginPath();
-      treeCtx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-      if (isS) treeCtx.fillStyle = '#34C759';
-      else if (isE) treeCtx.fillStyle = '#FF3B30';
-      else if (node.ip) treeCtx.fillStyle = '#FF9500';
-      else treeCtx.fillStyle = '#AFC8F0';
-      treeCtx.fill();
-      treeCtx.strokeStyle = '#fff';
-      treeCtx.lineWidth = 1;
-      treeCtx.stroke();
-
-      const size = Math.max(10, 13 * tZoom);
-      treeCtx.font = `600 ${size}px -apple-system, sans-serif`;
-      treeCtx.textAlign = 'center';
-      treeCtx.textBaseline = 'middle';
-      treeCtx.fillStyle = (node.ip || isS || isE) ? '#fff' : '#28284A';
-      treeCtx.fillText(node.node.join(','), node.x, node.y);
-    }
-
-    $('tree-info').textContent =
-      `Tree: ${treeData.algo}  •  ${treeData.shown}` +
-      (treeData.shown < treeData.total ? ` / ${treeData.total}` : '') +
-      ' nodes';
-    $('tree-hint').textContent = `Scroll=zoom  Drag=pan  (${tZoom.toFixed(2)}x)`;
   }
 
   function updateUI() {
@@ -327,11 +211,11 @@ window.VisualizePage = (() => {
       runButton.textContent = 'Run';
       runButton.className = 'btn btn-run';
     }
-    $('btn-step-back').disabled = (viz.step_ptr ?? -1) < 1 || viz.finished;
+    $('btn-step-back').disabled = (viz.step_ptr ?? -1) < 1 || viz.finished || viz.running;
     $('btn-step-fwd').disabled = viz.running || viz.finished || viz.maze_running;
     $('btn-cancel').classList.toggle('hidden', !isActive && !viz.finished);
 
-    $('btn-maze').textContent = viz.maze_running ? 'Generating…' : 'Generate Maze';
+    $('btn-maze').textContent = viz.maze_running ? 'Generating…' : 'Basic Maze';
     $('btn-maze').disabled = !!viz.maze_running;
 
     const hasCp = !!viz.checkpoint;
@@ -385,50 +269,28 @@ window.VisualizePage = (() => {
       }
     });
 
-    const treeButton = $('btn-tree');
-    const treeCloseButton = $('btn-tree-close');
     const sidebar = $('viz-sidebar');
-    if (viz.has_tree) {
-      treeButton.classList.remove('hidden');
-      treeButton.textContent = viz.show_tree ? 'Hide Tree' : 'Show Tree';
-      treeButton.classList.toggle('active-tree', viz.show_tree);
-    } else {
-      treeButton.classList.add('hidden');
-    }
-    treeCloseButton.classList.toggle('hidden', !viz.show_tree);
-
-    $('grid-area').classList.toggle('split', !!viz.show_tree);
-    $('tree-area').classList.toggle('hidden', !viz.show_tree);
-    sidebar.classList.toggle('hidden-tree', !!viz.show_tree);
-    sidebar.classList.toggle('expanded-stats', !viz.show_tree && (viz.finished || viz.stats.found !== null));
-
-    if (viz.show_tree && !lastTreeVisible) {
-      tFocusRoot = true;
-      tFit = false;
-    }
-    lastTreeVisible = !!viz.show_tree;
+    sidebar.classList.toggle('expanded-stats', viz.finished || viz.stats.found !== null);
 
   }
 
   async function poll() {
     if (state.tab !== 'visualize') return;
     try {
+      const prevFinished = !!state.viz?.finished;
       state.viz = await (await fetch('/api/state')).json();
+      if (prevFinished && !state.viz.finished) {
+        gZoom = 1; gPanX = 0; gPanY = 0;
+      }
       if (state.viz.rows !== lastVizRows || state.viz.cols !== lastVizCols) {
         lastVizRows = state.viz.rows;
         lastVizCols = state.viz.cols;
         prevGrid = null;
         animCells.clear();
+        gZoom = 1; gPanX = 0; gPanY = 0;
       }
       if (state.viz.grid) updateAnimations(state.viz.grid, state.viz.rows, state.viz.cols);
       updateUI();
-
-      if (state.viz.show_tree) {
-        const td = await (await fetch('/api/tree')).json();
-        if (td) state.treeData = td;
-      } else {
-        state.treeData = null;
-      }
     } catch (_) {}
   }
 
@@ -436,10 +298,6 @@ window.VisualizePage = (() => {
     if (state.tab === 'visualize') {
       fitCanvas(gridCanvas, $('grid-area'));
       drawGrid();
-      if (vizState()?.show_tree && treeState()) {
-        fitCanvas(treeCanvas, treeCanvas.parentElement);
-        drawTree();
-      }
     }
     requestAnimationFrame(render);
   }
@@ -447,10 +305,6 @@ window.VisualizePage = (() => {
   function onResize() {
     if (state.tab === 'visualize') {
       fitCanvas(gridCanvas, $('grid-area'));
-      if (vizState()?.show_tree) {
-        fitCanvas(treeCanvas, treeCanvas.parentElement);
-        tFocusRoot = true;
-      }
     }
   }
 
@@ -475,14 +329,7 @@ window.VisualizePage = (() => {
     $('btn-clear').addEventListener('click', () => act({action:'clear'}));
     $('btn-maze').addEventListener('click', () => act({action:'maze'}));
     $('btn-weighted-maze').addEventListener('click', () => act({action:'weighted_maze'}));
-    $('btn-reset').addEventListener('click', () => act({action:'reset'}));
-    $('btn-tree').addEventListener('click', () => {
-      act({action:'toggle_tree'});
-      tFocusRoot = true;
-    });
-    $('btn-tree-close').addEventListener('click', () => {
-      act({action:'toggle_tree'});
-    });
+$('btn-reset').addEventListener('click', () => act({action:'reset'}));
 
     $('btn-cp-toggle').addEventListener('click', () => {
       if (vizState()?.checkpoint) {
@@ -499,13 +346,13 @@ window.VisualizePage = (() => {
     });
 
     $('btn-spd-down').addEventListener('click', () => {
-      const v = Math.max(1, (vizState()?.speed || 20) - 5);
+      const v = Math.max(1, (vizState()?.speed || 20) - 1);
       $('speed-val').textContent = v;
       $('speed-slider').value = v;
       act({action:'speed', value:v});
     });
     $('btn-spd-up').addEventListener('click', () => {
-      const v = Math.min(200, (vizState()?.speed || 20) + 5);
+      const v = Math.min(400, (vizState()?.speed || 20) + 1);
       $('speed-val').textContent = v;
       $('speed-slider').value = v;
       act({action:'speed', value:v});
@@ -541,14 +388,16 @@ window.VisualizePage = (() => {
       if (e.key === ',' && state.tab === 'visualize') act({action:'step_back'});
       if (e.key === 'r' && state.tab === 'visualize') act({action:'reset'});
       if (e.key === 'Escape' && state.tab === 'visualize') act({action:'cancel_algo'});
-      if (e.key === 't' && state.tab === 'visualize') {
-        act({action:'toggle_tree'});
-        tFit = true;
-      }
     });
 
     gridCanvas.addEventListener('mousedown', e => {
       const viz = vizState();
+      // In view mode (finished): pan the grid, no editing
+      if (viz?.finished) {
+        gDrag = { sx: e.clientX, sy: e.clientY, ox: gPanX, oy: gPanY };
+        document.body.style.cursor = 'grabbing';
+        return;
+      }
       const p = gridPos(e);
       if (terrainBrush > 0 && p && !viz?.running) {
         mDown = true;
@@ -590,12 +439,7 @@ window.VisualizePage = (() => {
         }
         return;
       }
-      if (viz?.show_tree) {
-        return;
-      }
-      if (!p) {
-        return;
-      }
+      if (!p) return;
       mDown = true;
       mBtn = e.button;
       act({action:'grid_cell', r:p.r, c:p.c, remove: e.button === 2});
@@ -603,7 +447,11 @@ window.VisualizePage = (() => {
 
     gridCanvas.addEventListener('mousemove', e => {
       const viz = vizState();
-      if (!mDown && !dragType && !viz?.show_tree) {
+      if (viz?.finished) {
+        gridCanvas.style.cursor = gDrag ? 'grabbing' : 'grab';
+        return;
+      }
+      if (!mDown && !dragType) {
         const p = gridPos(e);
         if (p && viz?.grid && !viz.running) {
           const t = viz.grid[p.r * viz.cols + p.c];
@@ -628,25 +476,34 @@ window.VisualizePage = (() => {
       lastDragSent = null;
       document.body.style.cursor = '';
       mDown = false;
-      tDrag = null;
+      gDrag = null;
     });
     gridCanvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    treeCanvas.addEventListener('wheel', e => {
+    gridCanvas.addEventListener('wheel', e => {
+      const viz = vizState();
+      if (!viz?.finished) return;
       e.preventDefault();
       const f = e.deltaY < 0 ? 1.12 : 0.88;
-      const rect = treeCanvas.getBoundingClientRect();
+      const nz = Math.max(0.5, Math.min(10, gZoom * f));
+      const cw = gridCanvas.clientWidth;
+      const ch = gridCanvas.clientHeight;
+      const rows = viz.rows, cols = viz.cols;
+      const rect = gridCanvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
-      const nz = Math.max(0.05, Math.min(8, tZoom * f));
-      tOx = mx - (mx - tOx) * nz / tZoom;
-      tOy = my - (my - tOy) * nz / tZoom;
-      tZoom = nz;
-    }, {passive: false});
-
-    treeCanvas.addEventListener('mousedown', e => {
-      tDrag = { sx: e.clientX, sy: e.clientY, ox: tOx, oy: tOy };
-    });
+      const { cell, ox, oy } = gInfo;
+      const wx = (mx - ox) / cell;
+      const wy = (my - oy) / cell;
+      const baseCellRaw = Math.min(cw / cols, ch / rows);
+      const baseCell = Math.max(1, Math.floor(baseCellRaw));
+      const newCell = Math.max(1, Math.floor(baseCell * nz));
+      const newBasOx = Math.floor((cw - cols * newCell) / 2);
+      const newBasOy = Math.floor((ch - rows * newCell) / 2);
+      gPanX = mx - newBasOx - wx * newCell;
+      gPanY = my - newBasOy - wy * newCell;
+      gZoom = nz;
+    }, { passive: false });
 
     document.addEventListener('mousemove', e => {
       if (dragType) {
@@ -658,18 +515,16 @@ window.VisualizePage = (() => {
           act({ action: actionMap[dragType], r: p.r, c: p.c });
         }
       }
-      if (tDrag) {
-        tOx = tDrag.ox + e.clientX - tDrag.sx;
-        tOy = tDrag.oy + e.clientY - tDrag.sy;
+      if (gDrag) {
+        gPanX = gDrag.ox + e.clientX - gDrag.sx;
+        gPanY = gDrag.oy + e.clientY - gDrag.sy;
       }
     });
   }
 
   function init() {
     gridCanvas = $('grid-canvas');
-    treeCanvas = $('tree-canvas');
     gridCtx = gridCanvas.getContext('2d');
-    treeCtx = treeCanvas.getContext('2d');
 
     bindUI();
 

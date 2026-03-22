@@ -35,11 +35,6 @@
   box-shadow: 0 2px 8px rgba(0,122,255,.25);
 }
 .btn-accent:hover { background: #006AE0; }
-.btn-accent.active-tree {
-  background: var(--orange);
-  box-shadow: 0 2px 8px rgba(255,149,0,.25);
-}
-.btn-accent.active-tree:hover { background: #E08500; }
 
 .dropdown { position: relative; }
 .dd-btn {
@@ -199,9 +194,6 @@
   min-height: 16px;
 }
 
-.side-panel-tree .btn {
-  width: 100%;
-}
 
 .grid-area {
   flex: 1;
@@ -323,56 +315,7 @@
 .viz-sidebar .gl-item {
   font-size: 12px;
 }
-.grid-area.split { flex: 0 0 65%; }
 #grid-canvas { display: block; }
-
-.tree-area {
-  flex: 0 0 35%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid var(--border);
-  background: #F8F9FC;
-}
-.tree-hdr {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 12px;
-  background: var(--white);
-  border-bottom: 1px solid var(--border);
-  font: 400 13px/1 var(--font);
-  color: var(--g1);
-}
-#tree-hint { font-size: 12px; color: var(--g2); }
-.tree-tools {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-#tree-canvas { flex: 1; display: block; cursor: grab; }
-#tree-canvas:active { cursor: grabbing; }
-.btn-tree-close {
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-}
-.tree-legend {
-  display: flex;
-  gap: 16px;
-  padding: 6px 12px;
-  background: var(--white);
-  border-top: 1px solid var(--border);
-  font: 400 13px/1 var(--font);
-  color: var(--g1);
-}
-.leg { display: flex; align-items: center; gap: 6px; }
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-}
 
 #ribbon-viz .rib-group {
   min-width: 0;

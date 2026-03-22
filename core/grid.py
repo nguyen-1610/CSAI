@@ -62,10 +62,10 @@ def build_grid_array(vis=None, front=None, path=None):
             pos = (r, c)
             if pos == s:
                 grid.append(2)
-            elif pos == e:
-                grid.append(3)
             elif cp and pos == cp:
                 grid.append(7)
+            elif pos == e:
+                grid.append(3)
             elif pos in walls:
                 grid.append(1)
             elif pos in path_set:
@@ -84,12 +84,6 @@ def build_grid_array(vis=None, front=None, path=None):
 def generate_maze():
     rows, cols = state.rows, state.cols
     state.walls = set()
-    for r in range(rows):
-        state.walls.add((r, 0))
-        state.walls.add((r, cols - 1))
-    for c in range(cols):
-        state.walls.add((0, c))
-        state.walls.add((rows - 1, c))
 
     def divide(r1, c1, r2, c2):
         w = c2 - c1
@@ -99,22 +93,24 @@ def generate_maze():
         horizontal = h > w if h != w else random.random() < 0.5
         if horizontal:
             wr = random.choice(list(range(r1 + 1, r2, 2)) or [r1 + 1])
-            pc = random.choice(list(range(c1, c2 + 1, 2)) or [random.randrange(c1, c2 + 1)])
+            cands = list(range(c1, c2 + 1, 2)) or [random.randrange(c1, c2 + 1)]
+            passages = set(random.sample(cands, min(2, len(cands))))
             for c in range(c1, c2 + 1):
-                if c != pc:
+                if c not in passages:
                     state.walls.add((wr, c))
             divide(r1, c1, wr - 1, c2)
             divide(wr + 1, c1, r2, c2)
         else:
             wc = random.choice(list(range(c1 + 1, c2, 2)) or [c1 + 1])
-            pr = random.choice(list(range(r1, r2 + 1, 2)) or [random.randrange(r1, r2 + 1)])
+            cands = list(range(r1, r2 + 1, 2)) or [random.randrange(r1, r2 + 1)]
+            passages = set(random.sample(cands, min(2, len(cands))))
             for r in range(r1, r2 + 1):
-                if r != pr:
+                if r not in passages:
                     state.walls.add((r, wc))
             divide(r1, c1, r2, wc - 1)
             divide(r1, wc + 1, r2, c2)
 
-    divide(1, 1, rows - 2, cols - 2)
+    divide(0, 0, rows - 1, cols - 1)
     _clear_around_markers(rows, cols)
 
 
@@ -160,12 +156,13 @@ def generate_plain_terrain():
             pos = (r, c)
             if pos not in markers:
                 rnd = random.random()
-                if rnd < 0.18:
-                    state.terrain[pos] = 8
-                elif rnd < 0.42:
-                    state.terrain[pos] = 9
-                elif rnd < 0.72:
-                    state.terrain[pos] = 10
+                if rnd < 0.05:
+                    state.terrain[pos] = 8   # water 5%
+                elif rnd < 0.15:
+                    state.terrain[pos] = 9   # swamp 10%
+                elif rnd < 0.35:
+                    state.terrain[pos] = 10  # grass 20%
+
 
 
 def _clear_around_markers(rows, cols):

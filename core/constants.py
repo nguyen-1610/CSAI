@@ -7,6 +7,6 @@ PW = 340
 
 DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-MAX_SPEED = 200
+MAX_SPEED = 400
 MIN_R, MAX_R = 5, 50
 MIN_C, MAX_C = 5, 80

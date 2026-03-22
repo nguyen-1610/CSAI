@@ -31,6 +31,7 @@ class State:
 
         self.step_history = []   # list of (vis_copy, front_copy) for step-back
         self.step_ptr = -1
+        self.step_history_gen_base = 0  # generator calls before history[0]
         self.paused = False
 
         # Used by checkpoint mode so the UI keeps green at the original start during phase 2.
@@ -52,6 +53,7 @@ class State:
         self.came_from = {}
         self.step_history = []
         self.step_ptr = -1
+        self.step_history_gen_base = 0
         self.paused = False
         self.phase2_orig_start = None
 

@@ -79,7 +79,7 @@ def algo_iddfs():
             if new_budget > 0:
                 stack.append((nb, iter(get_neighbors(*nb)), new_budget, []))
 
-            yield total_visited, path_set
+            yield total_visited.copy(), path_set.copy()
 
         if found:
             p = reconstruct_path(came_from, e)
@@ -95,7 +95,7 @@ def algo_iddfs():
             state.finished = True
             return
 
-        yield total_visited, set()
+        yield total_visited.copy(), set()
 
     state.stats.update(
         nodes=len(total_visited),
