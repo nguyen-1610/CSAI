@@ -146,7 +146,6 @@ def generate_maze_gen():
 
 
 def generate_plain_terrain():
-    state.walls.clear()
     markers = {state.start_cell, state.end_cell}
     if state.checkpoint_cell:
         markers.add(state.checkpoint_cell)
