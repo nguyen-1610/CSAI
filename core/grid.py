@@ -49,35 +49,31 @@ def path_cost(path):
 def build_grid_array(vis=None, front=None, path=None):
     """Flat list of cell types used by the frontend canvas renderer."""
     rows, cols = state.rows, state.cols
+    grid = [0] * (rows * cols)
+
+    # Write in ascending priority (each layer overwrites lower).
+    for (r, c), t in state.terrain.items():
+        if 0 <= r < rows and 0 <= c < cols:
+            grid[r * cols + c] = t
+    for r, c in (vis or ()):
+        grid[r * cols + c] = 4
+    for r, c in (front or ()):
+        grid[r * cols + c] = 5
+    if path:
+        for r, c in path:
+            grid[r * cols + c] = 6
+    for r, c in state.walls:
+        if 0 <= r < rows and 0 <= c < cols:
+            grid[r * cols + c] = 1
+
+    # Markers are highest priority.
     s = state.phase2_orig_start if state.phase2_orig_start else state.start_cell
     e = state.end_cell
     cp = state.checkpoint_cell
-    walls = state.walls
-    vis = vis or set()
-    front = front or set()
-    path_set = set(path) if path else set()
-    grid = []
-    for r in range(rows):
-        for c in range(cols):
-            pos = (r, c)
-            if pos == s:
-                grid.append(2)
-            elif cp and pos == cp:
-                grid.append(7)
-            elif pos == e:
-                grid.append(3)
-            elif pos in walls:
-                grid.append(1)
-            elif pos in path_set:
-                grid.append(6)
-            elif pos in front:
-                grid.append(5)
-            elif pos in vis:
-                grid.append(4)
-            elif pos in state.terrain:
-                grid.append(state.terrain[pos])
-            else:
-                grid.append(0)
+    grid[s[0] * cols + s[1]] = 2
+    grid[e[0] * cols + e[1]] = 3
+    if cp:
+        grid[cp[0] * cols + cp[1]] = 7
     return grid
 
 

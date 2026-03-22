@@ -34,6 +34,7 @@ window.VisualizePage = (() => {
   let dragType = null;
   let dragCell = null;
   let lastDragSent = null;
+  let lastWallPos = null;
 
   let cpPlaceMode = false;
   let terrainBrush = 0;
@@ -390,6 +391,24 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
       if (e.key === 'Escape' && state.tab === 'visualize') act({action:'cancel_algo'});
     });
 
+    function applyWallOptimistic(p, remove) {
+      const viz = state.viz;
+      if (!viz?.grid) return;
+      const idx = p.r * viz.cols + p.c;
+      const t = viz.grid[idx];
+      if (t === 2 || t === 3 || t === 7) return;
+      viz.grid[idx] = remove ? 0 : 1;
+    }
+
+    function applyTerrainOptimistic(p, terrain) {
+      const viz = state.viz;
+      if (!viz?.grid) return;
+      const idx = p.r * viz.cols + p.c;
+      const t = viz.grid[idx];
+      if (t === 1 || t === 2 || t === 3 || t === 7) return;
+      viz.grid[idx] = terrain;
+    }
+
     gridCanvas.addEventListener('mousedown', e => {
       const viz = vizState();
       // In view mode (finished): pan the grid, no editing
@@ -402,6 +421,8 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
       if (terrainBrush > 0 && p && !viz?.running) {
         mDown = true;
         mBtn = e.button;
+        lastWallPos = p;
+        applyTerrainOptimistic(p, e.button === 2 ? 0 : terrainBrush);
         act({action:'set_terrain', r:p.r, c:p.c, terrain: e.button === 2 ? 0 : terrainBrush});
         return;
       }
@@ -442,6 +463,8 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
       if (!p) return;
       mDown = true;
       mBtn = e.button;
+      lastWallPos = p;
+      applyWallOptimistic(p, e.button === 2);
       act({action:'grid_cell', r:p.r, c:p.c, remove: e.button === 2});
     });
 
@@ -463,9 +486,13 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
       if (!mDown) return;
       const p = gridPos(e);
       if (!p) return;
+      if (lastWallPos && lastWallPos.r === p.r && lastWallPos.c === p.c) return;
+      lastWallPos = p;
       if (terrainBrush > 0) {
+        applyTerrainOptimistic(p, mBtn === 2 ? 0 : terrainBrush);
         act({action:'set_terrain', r:p.r, c:p.c, terrain: mBtn === 2 ? 0 : terrainBrush});
       } else {
+        applyWallOptimistic(p, mBtn === 2);
         act({action:'grid_cell', r:p.r, c:p.c, remove: mBtn === 2});
       }
     });
@@ -474,6 +501,7 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
       dragType = null;
       dragCell = null;
       lastDragSent = null;
+      lastWallPos = null;
       document.body.style.cursor = '';
       mDown = false;
       gDrag = null;

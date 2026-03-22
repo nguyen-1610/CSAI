@@ -70,6 +70,7 @@ def get_race_state():
                     runner.get("front", set()),
                     runner.get("path", []),
                 ),
+                "path": [list(pos) for pos in runner.get("path", [])],
                 "stats": runner.get("stats"),
             }
         else:
@@ -628,7 +629,7 @@ def _copy_front(front):
 
 def _build_race_results():
     return [
-        {"name": ALG_NAMES[idx], **_race_runners[idx]["stats"]}
+        {"name": ALG_NAMES[idx], "alg_idx": idx, **_race_runners[idx]["stats"]}
         for idx in _race_order
         if _race_runners.get(idx) and _race_runners[idx].get("stats")
     ]
