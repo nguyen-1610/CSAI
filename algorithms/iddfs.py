@@ -5,14 +5,16 @@ from core.state import state
 
 def algo_iddfs():
     s, e = state.start_cell, state.end_cell
-    t0 = time.perf_counter()
+    # elapsed: tổng thời gian CPU thuần túy của thuật toán (không tính thời gian yield chờ GUI)
+    elapsed = 0.0
+    t_step = time.perf_counter()
     total_visited = set()
     total_visited.add(s)
 
     if s == e:
         state.path_cells = [s]
         state.stats.update(nodes=1, path=1, cost=0,
-                           time=time.perf_counter() - t0, found=True)
+                           time=time.perf_counter() - t_step, found=True)
         state.finished = True
         return
 
@@ -27,7 +29,7 @@ def algo_iddfs():
                 queue.append(nb)
     if e not in reachable:
         state.stats.update(nodes=len(reachable), found=False,
-                           time=time.perf_counter() - t0)
+                           time=time.perf_counter() - t_step)
         state.finished = True
         return
 
@@ -40,21 +42,20 @@ def algo_iddfs():
         visited_at = {}
 
         found = False
-        stack = [(s, iter(get_neighbors(*s)), depth, [])]
+        # Frame: (node, nb_iter, remaining, should_clean)
+        # should_clean=True → xóa node khỏi path_set/came_from khi frame bị pop
+        stack = [(s, iter(get_neighbors(*s)), depth, False)]
 
         while stack:
-            node, nb_iter, remaining, rollback = stack[-1]
+            node, nb_iter, remaining, _ = stack[-1]
             nb = next(nb_iter, None)
 
             if nb is None:
-                # Hết neighbor → backtrack: pop frame và hoàn tác came_from
-                stack.pop()
-                for nb_done, old_parent in rollback:
-                    path_set.discard(nb_done)
-                    if old_parent is None:
-                        came_from.pop(nb_done, None)
-                    else:
-                        came_from[nb_done] = old_parent
+                # Hết neighbor → backtrack: mỗi node tự dọn dẹp chính nó khi pop
+                popped_node, _, _, should_clean = stack.pop()
+                if should_clean:
+                    path_set.discard(popped_node)
+                    came_from.pop(popped_node, None)
                 continue
 
             if nb in path_set:
@@ -67,19 +68,24 @@ def algo_iddfs():
             visited_at[nb] = new_budget
 
             total_visited.add(nb)
-            old_parent = came_from.get(nb)
             came_from[nb] = node
             path_set.add(nb)
-            rollback.append((nb, old_parent))
 
             if nb == e:
                 found = True
                 break
 
             if new_budget > 0:
-                stack.append((nb, iter(get_neighbors(*nb)), new_budget, []))
+                stack.append((nb, iter(get_neighbors(*nb)), new_budget, True))
 
+            elapsed += time.perf_counter() - t_step
             yield total_visited.copy(), path_set.copy()
+            t_step = time.perf_counter()
+
+            if new_budget <= 0:
+                # Leaf node: không push stack → cleanup ngay sau yield
+                path_set.discard(nb)
+                came_from.pop(nb, None)
 
         if found:
             p = reconstruct_path(came_from, e)
@@ -88,19 +94,21 @@ def algo_iddfs():
                 nodes=len(total_visited),
                 path=len(p),
                 cost=path_cost(p),
-                time=time.perf_counter() - t0,
+                time=elapsed + (time.perf_counter() - t_step),
                 found=True,
             )
             state.came_from = came_from
             state.finished = True
             return
 
+        elapsed += time.perf_counter() - t_step
         yield total_visited.copy(), set()
+        t_step = time.perf_counter()
 
     state.stats.update(
         nodes=len(total_visited),
         found=False,
-        time=time.perf_counter() - t0,
+        time=elapsed + (time.perf_counter() - t_step),
     )
     state.came_from = came_from
     state.finished = True
