@@ -24,6 +24,16 @@ window.RacePage = (() => {
     "#E87D4A",
     "#6BB87A",
   ];
+  const ALG_SHORT = {
+    "Breadth-First Search": "BFS",
+    "Depth-First Search": "DFS",
+    "Uniform Cost Search": "UCS",
+    "A* Search": "A*",
+    "Iterative Deepening DFS": "IDDFS",
+    "Bidirectional BFS": "Bi-BFS",
+    "Beam Search": "Beam",
+    "IDA* Search": "IDA*",
+  };
 
   let racePanelOrder = [];
   const prevRaceGrids = new Map();
@@ -34,6 +44,24 @@ window.RacePage = (() => {
 
   function raceState() {
     return state.race;
+  }
+
+  function shortAlgName(name) {
+    return ALG_SHORT[name] || name;
+  }
+
+  function makeLowBadge(label, { avgFactor = 0.8 } = {}) {
+    return (v, allVals) => {
+      if (!(v > 0)) return null;
+      const positives = allVals.filter((x) => x > 0);
+      if (!positives.length) return null;
+      const best = Math.min(...positives);
+      const avg = positives.reduce((sum, x) => sum + x, 0) / positives.length;
+      const tolerance = Math.max(0.001, best * 0.02);
+      const isBest = Math.abs(v - best) <= tolerance;
+      const standsOut = v <= avg * avgFactor;
+      return isBest && standsOut ? label : null;
+    };
   }
 
   async function ensureVizState() {
@@ -399,7 +427,7 @@ window.RacePage = (() => {
       ctx.fillStyle = d.found ? "#3A3A3C" : "#8E8E93";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(d.name.substring(0, 18), legX + 20, legY);
+      ctx.fillText(shortAlgName(d.name), legX + 20, legY);
     });
   }
 
@@ -460,7 +488,7 @@ window.RacePage = (() => {
       ctx.fillStyle = "#3A3A3C";
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
-      ctx.fillText(data[i].name.substring(0, 15), ml - 8, by + barH / 2);
+      ctx.fillText(shortAlgName(data[i].name), ml - 8, by + barH / 2);
 
       // value label
       let valueLabel;
@@ -661,19 +689,25 @@ window.RacePage = (() => {
 
     if (race.results) {
       $("race-charts").classList.remove("hidden");
-      drawChart($("chart-nodes"), race.results, "nodes", "Nodes Visited");
-      drawChart($("chart-path"), race.results, "path", "Path Length");
-      drawChart($("chart-cost"), race.results, "cost", "Cost");
-      drawChart($("chart-time"), race.results, "time", "Time (ms)");
+      drawChart($("chart-nodes"), race.results, "nodes", "Nodes Visited", {
+        badge: makeLowBadge("EFFICIENT", { avgFactor: 0.88 }),
+      });
+      drawChart($("chart-path"), race.results, "path", "Path Length", {
+        badge: makeLowBadge("SHORT", { avgFactor: 0.9 }),
+      });
+      drawChart($("chart-cost"), race.results, "cost", "Cost", {
+        badge: makeLowBadge("CHEAP", { avgFactor: 0.9 }),
+      });
+      drawChart($("chart-time"), race.results, "time", "Time (ms)", {
+        badge: makeLowBadge("FAST", { avgFactor: 0.86 }),
+      });
       drawChart($("chart-iterations"), race.results, "iterations", "Iterations", {
         formatValue: (v) => `\u00d7${Math.round(v)}`,
+        badge: makeLowBadge("FEW", { avgFactor: 0.8 }),
       });
       drawChart($("chart-memory"), race.results, "peak_memory", "Peak Memory (nodes)", {
         formatValue: (v) => v === 0 ? "\u2014" : `${Math.round(v)}`,
-        badge: (v, allVals) => {
-          const avg = allVals.reduce((a, b) => a + b, 0) / allVals.length;
-          return v > 0 && v < avg * 0.4 ? "LOW \u2193" : null;
-        },
+        badge: makeLowBadge("LOW \u2193", { avgFactor: 0.75 }),
       });
       drawRadarChart($("chart-radar"), race.results);
     } else {
