@@ -6,7 +6,8 @@ from core.state import state
 
 def algo_bfs():
     s, e = state.start_cell, state.end_cell
-    t0 = time.perf_counter()
+    elapsed = 0.0
+    t_step = time.perf_counter()
     # deque cho phép popleft() O(1) — nếu dùng list thì pop(0) sẽ là O(n)
     queue     = deque([s])
     # came_from lưu node cha để truy vết đường đi sau khi tìm thấy đích
@@ -25,7 +26,7 @@ def algo_bfs():
             p = reconstruct_path(came_from, e)
             state.path_cells = p
             state.stats.update(nodes=len(visited), path=len(p),
-                               cost=path_cost(p), time=time.perf_counter()-t0, found=True)
+                               cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True)
             state.came_from = came_from
             state.finished = True
             return
@@ -38,8 +39,10 @@ def algo_bfs():
                 queue.append(nb)
 
         # Yield snapshot để GUI vẽ animation: visited=đã duyệt, frontier=đang chờ
+        elapsed += time.perf_counter() - t_step
         yield visited.copy(), set(queue)
+        t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(visited), found=False, time=time.perf_counter()-t0)
+    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step))
     state.came_from = came_from
     state.finished = True

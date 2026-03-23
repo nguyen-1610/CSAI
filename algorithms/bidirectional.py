@@ -6,12 +6,13 @@ from core.state import state
 
 def algo_bidirectional():
     s, e = state.start_cell, state.end_cell
-    t0 = time.perf_counter()
+    elapsed = 0.0
+    t_step = time.perf_counter()
 
     if s == e:
         state.path_cells = [s]
         state.stats.update(nodes=1, path=1, cost=0,
-                           time=time.perf_counter() - t0, found=True)
+                           time=time.perf_counter() - t_step, found=True)
         state.came_from = {s: None}
         state.finished = True
         return
@@ -38,7 +39,9 @@ def algo_bidirectional():
                         meeting = nb
                         break
             if meeting:
+                elapsed += time.perf_counter() - t_step
                 yield (set(fwd_visited) | set(bwd_visited)).copy(), set()
+                t_step = time.perf_counter()
                 break
 
         # --- Backward step ---
@@ -52,12 +55,16 @@ def algo_bidirectional():
                         meeting = nb
                         break
             if meeting:
+                elapsed += time.perf_counter() - t_step
                 yield (set(fwd_visited) | set(bwd_visited)).copy(), set()
+                t_step = time.perf_counter()
                 break
 
         visited_all = set(fwd_visited) | set(bwd_visited)
         frontier    = set(fwd_queue)  | set(bwd_queue)
+        elapsed += time.perf_counter() - t_step
         yield visited_all.copy(), frontier.copy()
+        t_step = time.perf_counter()
 
     if meeting is not None:
         # Build path: s -> meeting using fwd_visited
@@ -79,13 +86,13 @@ def algo_bidirectional():
         visited_all = set(fwd_visited) | set(bwd_visited)
         state.path_cells = p
         state.stats.update(nodes=len(visited_all), path=len(p),
-                           cost=path_cost(p), time=time.perf_counter() - t0, found=True)
+                           cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True)
         state.came_from = fwd_visited
         state.finished = True
         return
 
     visited_all = set(fwd_visited) | set(bwd_visited)
     state.stats.update(nodes=len(visited_all), found=False,
-                       time=time.perf_counter() - t0)
+                       time=elapsed + (time.perf_counter() - t_step))
     state.came_from = fwd_visited
     state.finished = True

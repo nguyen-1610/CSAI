@@ -6,7 +6,8 @@ from core.state import state
 
 def algo_ucs():
     s, e = state.start_cell, state.end_cell
-    t0 = time.perf_counter()
+    elapsed = 0.0
+    t_step = time.perf_counter()
     # heap lưu tuple (cost, tie_break_id, node)
     # tie_break_id dùng next_id() để tránh Python so sánh tuple khi cost bằng nhau
     # (so sánh 2 tuple (r,c) với nhau sẽ lỗi nếu kiểu không hỗ trợ <)
@@ -31,7 +32,7 @@ def algo_ucs():
             state.path_cells = p
             # cost ở đây là tổng chi phí thực tế (g-cost), chính xác hơn len(p)-1
             state.stats.update(nodes=len(visited), path=len(p),
-                               cost=cost, time=time.perf_counter()-t0, found=True)
+                               cost=cost, time=elapsed + (time.perf_counter() - t_step), found=True)
             state.came_from = came_from
             state.finished = True
             return
@@ -46,8 +47,10 @@ def algo_ucs():
 
         # Trích xuất tập node đang chờ trong heap để GUI hiển thị frontier
         frontier = {item[2] for item in heap}
+        elapsed += time.perf_counter() - t_step
         yield visited.copy(), frontier
+        t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(visited), found=False, time=time.perf_counter()-t0)
+    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step))
     state.came_from = came_from
     state.finished = True

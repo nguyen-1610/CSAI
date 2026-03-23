@@ -8,7 +8,8 @@ BEAM_WIDTH = 8
 
 def algo_beam():
     s, e = state.start_cell, state.end_cell
-    t0 = time.perf_counter()
+    elapsed = 0.0
+    t_step = time.perf_counter()
 
     came_from = {s: None}
     visited   = set()
@@ -27,7 +28,7 @@ def algo_beam():
                 p = reconstruct_path(came_from, e)
                 state.path_cells = p
                 state.stats.update(nodes=len(visited), path=len(p),
-                                   cost=path_cost(p), time=time.perf_counter()-t0, found=True)
+                                   cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True)
                 state.came_from = came_from
                 state.finished = True
                 return
@@ -46,8 +47,10 @@ def algo_beam():
         next_candidates.sort(key=lambda n: heuristic(n, e))
         beam = next_candidates[:BEAM_WIDTH]
 
+        elapsed += time.perf_counter() - t_step
         yield visited.copy(), set(beam)
+        t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(visited), found=False, time=time.perf_counter()-t0)
+    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step))
     state.came_from = came_from
     state.finished = True

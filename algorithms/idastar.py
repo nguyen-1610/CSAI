@@ -5,13 +5,14 @@ from core.state import state
 
 def algo_idastar():
     s, e = state.start_cell, state.end_cell
-    t0 = time.perf_counter()
+    elapsed = 0.0
+    t_step = time.perf_counter()
     total_visited = set()
 
     if s == e:
         state.path_cells = [s]
         state.stats.update(nodes=1, path=1, cost=0,
-                           time=time.perf_counter() - t0, found=True)
+                           time=time.perf_counter() - t_step, found=True)
         state.came_from = {s: None}
         state.finished = True
         return
@@ -56,7 +57,9 @@ def algo_idastar():
             total_visited.add(nb)
             path_set.add(nb)
 
+            elapsed += time.perf_counter() - t_step
             yield total_visited.copy(), set()
+            t_step = time.perf_counter()
 
             if nb == e:
                 found = True
@@ -69,7 +72,7 @@ def algo_idastar():
             p = reconstruct_path(came_from, e)
             state.path_cells = p
             state.stats.update(nodes=len(total_visited), path=len(p),
-                               cost=path_cost(p), time=time.perf_counter() - t0, found=True)
+                               cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True)
             state.came_from = came_from
             state.finished = True
             return
@@ -78,9 +81,11 @@ def algo_idastar():
             break
 
         threshold = min_exceeded
+        elapsed += time.perf_counter() - t_step
         yield total_visited.copy(), set()   # show progress between iterations
+        t_step = time.perf_counter()
 
     state.stats.update(nodes=len(total_visited), found=False,
-                       time=time.perf_counter() - t0)
+                       time=elapsed + (time.perf_counter() - t_step))
     state.came_from = came_from
     state.finished = True

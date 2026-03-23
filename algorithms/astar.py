@@ -6,7 +6,8 @@ from core.state import state
 
 def algo_astar():
     s, e = state.start_cell, state.end_cell
-    t0 = time.perf_counter()
+    elapsed = 0.0
+    t_step = time.perf_counter()
 
     g_score = {s: 0}
     came_from = {s: None}
@@ -26,7 +27,7 @@ def algo_astar():
             p = reconstruct_path(came_from, e)
             state.path_cells = p
             state.stats.update(nodes=len(visited), path=len(p),
-                               cost=g_score[e], time=time.perf_counter() - t0, found=True)
+                               cost=g_score[e], time=elapsed + (time.perf_counter() - t_step), found=True)
             state.came_from = came_from
             state.finished = True
             return
@@ -39,8 +40,10 @@ def algo_astar():
                 heapq.heappush(open_heap, (tentative + heuristic(nb, e), next_id(), nb))
                 open_set.add(nb)
 
+        elapsed += time.perf_counter() - t_step
         yield visited.copy(), open_set.copy()
+        t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(visited), found=False, time=time.perf_counter() - t0)
+    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step))
     state.came_from = came_from
     state.finished = True
