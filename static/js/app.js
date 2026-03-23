@@ -1,6 +1,8 @@
 /* Shared frontend bootstrap */
 
 const App = (() => {
+  const TAB_STORAGE_KEY = "maze_active_tab";
+
   const state = {
     tab: 'visualize',
     viz: null,
@@ -35,8 +37,25 @@ const App = (() => {
     } catch (_) {}
   }
 
-  function switchTab(tab) {
+  function readSavedTab() {
+    try {
+      const saved = window.localStorage.getItem(TAB_STORAGE_KEY);
+      return saved === 'race' || saved === 'visualize' ? saved : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function persistTab(tab) {
+    try {
+      window.localStorage.setItem(TAB_STORAGE_KEY, tab);
+    } catch (_) {}
+  }
+
+  function switchTab(tab, { persist = true } = {}) {
+    if (tab !== 'visualize' && tab !== 'race') tab = 'visualize';
     state.tab = tab;
+    if (persist) persistTab(tab);
     act({ action: 'switch_tab', tab: tab });
     document.querySelectorAll('.tab').forEach(button => {
       button.classList.toggle('active', button.dataset.tab === tab);
@@ -59,7 +78,9 @@ const App = (() => {
   }
 
   function init() {
+    state.tab = readSavedTab() || 'visualize';
     initTabs();
+    switchTab(state.tab, { persist: false });
     if (window.VisualizePage?.init) window.VisualizePage.init();
     if (window.RacePage?.init) window.RacePage.init();
   }

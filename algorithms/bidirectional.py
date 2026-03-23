@@ -26,6 +26,7 @@ def algo_bidirectional():
     bwd_visited  = {e: None}   # node -> parent
 
     meeting = None
+    peak_mem = 0
 
     while fwd_queue or bwd_queue:
         # --- Forward step ---
@@ -39,6 +40,7 @@ def algo_bidirectional():
                         meeting = nb
                         break
             if meeting:
+                peak_mem = max(peak_mem, len(fwd_visited) + len(bwd_visited) + len(fwd_queue) + len(bwd_queue))
                 elapsed += time.perf_counter() - t_step
                 yield (set(fwd_visited) | set(bwd_visited)).copy(), set()
                 t_step = time.perf_counter()
@@ -55,6 +57,7 @@ def algo_bidirectional():
                         meeting = nb
                         break
             if meeting:
+                peak_mem = max(peak_mem, len(fwd_visited) + len(bwd_visited) + len(fwd_queue) + len(bwd_queue))
                 elapsed += time.perf_counter() - t_step
                 yield (set(fwd_visited) | set(bwd_visited)).copy(), set()
                 t_step = time.perf_counter()
@@ -62,6 +65,7 @@ def algo_bidirectional():
 
         visited_all = set(fwd_visited) | set(bwd_visited)
         frontier    = set(fwd_queue)  | set(bwd_queue)
+        peak_mem = max(peak_mem, len(fwd_visited) + len(bwd_visited) + len(fwd_queue) + len(bwd_queue))
         elapsed += time.perf_counter() - t_step
         yield visited_all.copy(), frontier.copy()
         t_step = time.perf_counter()
@@ -86,13 +90,15 @@ def algo_bidirectional():
         visited_all = set(fwd_visited) | set(bwd_visited)
         state.path_cells = p
         state.stats.update(nodes=len(visited_all), path=len(p),
-                           cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True)
+                           cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True,
+                           iterations=1, peak_memory=peak_mem)
         state.came_from = fwd_visited
         state.finished = True
         return
 
     visited_all = set(fwd_visited) | set(bwd_visited)
     state.stats.update(nodes=len(visited_all), found=False,
-                       time=elapsed + (time.perf_counter() - t_step))
+                       time=elapsed + (time.perf_counter() - t_step),
+                       iterations=1, peak_memory=peak_mem)
     state.came_from = fwd_visited
     state.finished = True

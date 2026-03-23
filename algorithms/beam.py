@@ -15,6 +15,7 @@ def algo_beam():
     visited   = set()
     # beam là tập node đang xét ở "tầng" hiện tại (khác BFS: không giữ toàn bộ queue)
     beam      = [s]
+    peak_mem  = 0
 
     while beam:
         next_candidates = []
@@ -28,7 +29,8 @@ def algo_beam():
                 p = reconstruct_path(came_from, e)
                 state.path_cells = p
                 state.stats.update(nodes=len(visited), path=len(p),
-                                   cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True)
+                                   cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True,
+                                   iterations=1, peak_memory=peak_mem)
                 state.came_from = came_from
                 state.finished = True
                 return
@@ -47,10 +49,12 @@ def algo_beam():
         next_candidates.sort(key=lambda n: heuristic(n, e))
         beam = next_candidates[:BEAM_WIDTH]
 
+        peak_mem = max(peak_mem, len(visited) + len(beam))
         elapsed += time.perf_counter() - t_step
         yield visited.copy(), set(beam)
         t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step))
+    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step),
+                       iterations=1, peak_memory=peak_mem)
     state.came_from = came_from
     state.finished = True

@@ -16,6 +16,7 @@ def algo_ucs():
     # cost_so_far lưu chi phí tốt nhất đã biết để đến mỗi node
     cost_so_far = {s: 0}
     visited     = set()
+    peak_mem    = 0
 
     while heap:
         # Luôn lấy node có cost thấp nhất ra trước (min-heap)
@@ -32,7 +33,8 @@ def algo_ucs():
             state.path_cells = p
             # cost ở đây là tổng chi phí thực tế (g-cost), chính xác hơn len(p)-1
             state.stats.update(nodes=len(visited), path=len(p),
-                               cost=cost, time=elapsed + (time.perf_counter() - t_step), found=True)
+                               cost=cost, time=elapsed + (time.perf_counter() - t_step), found=True,
+                               iterations=1, peak_memory=peak_mem)
             state.came_from = came_from
             state.finished = True
             return
@@ -45,12 +47,14 @@ def algo_ucs():
                 came_from[nb] = curr
                 heapq.heappush(heap, (new_cost, next_id(), nb))
 
+        peak_mem = max(peak_mem, len(visited) + len(cost_so_far))
         # Trích xuất tập node đang chờ trong heap để GUI hiển thị frontier
         frontier = {item[2] for item in heap}
         elapsed += time.perf_counter() - t_step
         yield visited.copy(), frontier
         t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step))
+    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step),
+                       iterations=1, peak_memory=peak_mem)
     state.came_from = came_from
     state.finished = True

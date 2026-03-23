@@ -25,7 +25,7 @@ class State:
         self.alg_gen = None
         self._counter = [0]
 
-        self.stats = {"nodes": 0, "path": 0, "cost": 0, "time": 0.0, "found": None}
+        self.stats = {"nodes": 0, "path": 0, "cost": 0, "time": 0.0, "found": None, "iterations": 1, "peak_memory": 0}
         self.run_history = []
         self.came_from = {}
 
@@ -48,7 +48,7 @@ class State:
         self.vis_cells = set()
         self.front_cells = set()
         self.path_cells = []
-        self.stats = {"nodes": 0, "path": 0, "cost": 0, "time": 0.0, "found": None}
+        self.stats = {"nodes": 0, "path": 0, "cost": 0, "time": 0.0, "found": None, "iterations": 1, "peak_memory": 0}
         self.finished = False
         self.came_from = {}
         self.step_history = []

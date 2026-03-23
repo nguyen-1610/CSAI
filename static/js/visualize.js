@@ -2,24 +2,24 @@
 
 window.VisualizePage = (() => {
   const CELL_C = [
-    '#FFFFFF',
-    '#1C1C1E',
-    '#34C759',
-    '#FF3B30',
-    '#007AFF',
-    '#5856D6',
-    '#FF9500',
-    '#FFD60A',
-    '#1B6CA8',
-    '#8B5E3C',
-    '#8BC34A',
+    "#FFFFFF",
+    "#1C1C1E",
+    "#34C759",
+    "#FF3B30",
+    "#007AFF",
+    "#5856D6",
+    "#FF9500",
+    "#FFD60A",
+    "#1B6CA8",
+    "#8B5E3C",
+    "#8BC34A",
   ];
   let gridCanvas;
   let gridCtx;
 
   let mDown = false;
   let mBtn = 0;
-  let gInfo = { rows:0, cols:0, cell:0, ox:0, oy:0 };
+  let gInfo = { rows: 0, cols: 0, cell: 0, ox: 0, oy: 0 };
 
   let gZoom = 1;
   let gPanX = 0;
@@ -51,22 +51,25 @@ window.VisualizePage = (() => {
   function setTerrainBrush(type) {
     terrainBrush = terrainBrush === type ? 0 : type;
     if (terrainBrush) cpPlaceMode = false;
-    document.querySelectorAll('.btn-terrain').forEach(button => {
-      button.classList.toggle('btn-selected', +button.dataset.terrain === terrainBrush);
+    document.querySelectorAll(".btn-terrain").forEach((button) => {
+      button.classList.toggle(
+        "btn-selected",
+        +button.dataset.terrain === terrainBrush,
+      );
     });
   }
 
   function buildAlgoList() {
-    const list = $('algo-list');
-    list.innerHTML = '';
+    const list = $("algo-list");
+    list.innerHTML = "";
     ALG_NAMES.forEach((name, i) => {
-      const item = document.createElement('div');
-      item.className = 'dd-item';
+      const item = document.createElement("div");
+      item.className = "dd-item";
       item.innerHTML = `<span>${name}</span>`;
-      item.addEventListener('click', () => {
-        act({action:'select_algo', idx:i});
+      item.addEventListener("click", () => {
+        act({ action: "select_algo", idx: i });
         ddOpen = false;
-        list.classList.add('hidden');
+        list.classList.add("hidden");
       });
       list.appendChild(item);
     });
@@ -79,7 +82,9 @@ window.VisualizePage = (() => {
     }
     const now = performance.now();
     const pathIdx = new Map();
-    (vizState()?.path_cells || []).forEach(([r, c], i) => pathIdx.set(`${r},${c}`, i));
+    (vizState()?.path_cells || []).forEach(([r, c], i) =>
+      pathIdx.set(`${r},${c}`, i),
+    );
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -108,7 +113,9 @@ window.VisualizePage = (() => {
     const baseCellRaw = Math.min(cw / cols, ch / rows);
     const baseCell = Math.max(1, Math.floor(baseCellRaw));
     const viewMode = !!viz.finished;
-    const cell = viewMode ? Math.max(1, Math.floor(baseCell * gZoom)) : baseCell;
+    const cell = viewMode
+      ? Math.max(1, Math.floor(baseCell * gZoom))
+      : baseCell;
     const gw = cols * cell;
     const gh = rows * cell;
     const basOx = Math.floor((cw - gw) / 2);
@@ -117,20 +124,20 @@ window.VisualizePage = (() => {
     const oy = viewMode ? basOy + Math.round(gPanY) : basOy;
     gInfo = { rows, cols, cell, ox, oy };
 
-    gridCtx.fillStyle = '#F2F2F7';
+    gridCtx.fillStyle = "#F2F2F7";
     gridCtx.fillRect(0, 0, cw, ch);
 
     const now = performance.now();
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         let t = grid[r * cols + c];
-        if (dragType === 'start') {
+        if (dragType === "start") {
           if (t === 2) t = 0;
           if (dragCell && r === dragCell.r && c === dragCell.c) t = 2;
-        } else if (dragType === 'end') {
+        } else if (dragType === "end") {
           if (t === 3) t = 0;
           if (dragCell && r === dragCell.r && c === dragCell.c) t = 3;
-        } else if (dragType === 'checkpoint') {
+        } else if (dragType === "checkpoint") {
           if (t === 7) t = 0;
           if (dragCell && r === dragCell.r && c === dragCell.c) t = 7;
         }
@@ -146,7 +153,10 @@ window.VisualizePage = (() => {
           if (progress >= 1) animCells.delete(key);
           const c1 = 1.70158;
           const c3 = c1 + 1;
-          const scale = Math.max(0, 1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2));
+          const scale = Math.max(
+            0,
+            1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2),
+          );
 
           gridCtx.fillStyle = CELL_C[4];
           gridCtx.fillRect(x, y, cell, cell);
@@ -167,21 +177,20 @@ window.VisualizePage = (() => {
             gridCtx.restore();
           }
         } else {
-          gridCtx.fillStyle = anim ? CELL_C[4] : (CELL_C[t] || CELL_C[0]);
+          gridCtx.fillStyle = anim ? CELL_C[4] : CELL_C[t] || CELL_C[0];
           gridCtx.fillRect(x, y, cell, cell);
         }
 
         if (cell >= 6) {
-          gridCtx.strokeStyle = '#E5E5EA';
+          gridCtx.strokeStyle = "#E5E5EA";
           gridCtx.lineWidth = 0.5;
           gridCtx.strokeRect(x + 0.25, y + 0.25, cell - 0.5, cell - 0.5);
         }
         if (dragCell && r === dragCell.r && c === dragCell.c && dragType) {
-          gridCtx.strokeStyle = 'rgba(255,255,255,0.75)';
+          gridCtx.strokeStyle = "rgba(255,255,255,0.75)";
           gridCtx.lineWidth = Math.max(1.5, cell * 0.12);
           gridCtx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
         }
-
       }
     }
   }
@@ -193,202 +202,232 @@ window.VisualizePage = (() => {
     const { rows, cols, cell, ox, oy } = gInfo;
     const c = Math.floor((mx - ox) / cell);
     const r = Math.floor((my - oy) / cell);
-    return (r >= 0 && r < rows && c >= 0 && c < cols) ? { r, c } : null;
+    return r >= 0 && r < rows && c >= 0 && c < cols ? { r, c } : null;
   }
 
   function updateUI() {
     const viz = vizState();
     if (!viz) return;
 
-    const runButton = $('btn-run');
+    const runButton = $("btn-run");
     const isActive = viz.running || viz.paused;
     if (viz.running) {
-      runButton.textContent = 'Pause';
-      runButton.className = 'btn btn-run pausing';
+      runButton.textContent = "Pause";
+      runButton.className = "btn btn-run pausing";
     } else if (viz.paused && !viz.finished) {
-      runButton.textContent = 'Continue';
-      runButton.className = 'btn btn-run btn-continue';
+      runButton.textContent = "Continue";
+      runButton.className = "btn btn-run btn-continue";
     } else {
-      runButton.textContent = 'Run';
-      runButton.className = 'btn btn-run';
+      runButton.textContent = "Run";
+      runButton.className = "btn btn-run";
     }
-    $('btn-step-back').disabled = (viz.step_ptr ?? -1) < 1 || viz.finished || viz.running;
-    $('btn-step-fwd').disabled = viz.running || viz.finished || viz.maze_running;
-    $('btn-cancel').classList.toggle('hidden', !isActive && !viz.finished);
+    $("btn-step-back").disabled =
+      (viz.step_ptr ?? -1) < 1 || viz.finished || viz.running;
+    $("btn-step-fwd").disabled =
+      viz.running || viz.finished || viz.maze_running;
+    $("btn-cancel").classList.toggle("hidden", !isActive && !viz.finished);
 
-    $('btn-maze').textContent = viz.maze_running ? 'Generating…' : 'Basic Maze';
-    $('btn-maze').disabled = !!viz.maze_running;
+    $("btn-maze").textContent = viz.maze_running ? "Generating…" : "Basic Maze";
+    $("btn-maze").disabled = !!viz.maze_running;
 
     const hasCp = !!viz.checkpoint;
-    $('cp-label').textContent = hasCp ? 'Cancel Checkpoint' : 'Checkpoint';
-    $('btn-cp-toggle').style.cssText = hasCp
-      ? 'background:#FFF3CD;border-color:#FFD60A;color:#7A5F00'
-      : '';
+    $("cp-label").textContent = hasCp ? "Cancel Checkpoint" : "Checkpoint";
+    $("btn-cp-toggle").style.cssText = hasCp
+      ? "background:#FFF3CD;border-color:#FFD60A;color:#7A5F00"
+      : "";
     if (hasCp) {
-      $('btn-cp-toggle').classList.remove('btn-selected');
+      $("btn-cp-toggle").classList.remove("btn-selected");
       cpPlaceMode = false;
     } else {
-      $('btn-cp-toggle').classList.toggle('btn-selected', cpPlaceMode);
+      $("btn-cp-toggle").classList.toggle("btn-selected", cpPlaceMode);
     }
 
-    $('st-nodes').textContent = viz.stats.nodes;
-    $('st-path').textContent = viz.stats.path;
-    $('st-cost').textContent = viz.stats.cost;
-    $('st-time').textContent = `${(viz.stats.time * 1000).toFixed(1)} ms`;
+    $("st-nodes").textContent = viz.stats.nodes;
+    $("st-path").textContent = viz.stats.path;
+    $("st-cost").textContent = viz.stats.cost;
+    const t = viz.stats.time || 0;
+    $("st-time").textContent = `${(t * 1000).toFixed(2)} ms`;
 
-    const status = $('st-status');
+    const status = $("st-status");
     if (viz.running) {
-      status.textContent = 'Running...';
-      status.style.color = '#FF9500';
+      status.textContent = "Running...";
+      status.style.color = "#FF9500";
     } else if (viz.stats.found === true) {
-      status.textContent = 'Path Found';
-      status.style.color = '#34C759';
+      status.textContent = "Path Found";
+      status.style.color = "#34C759";
     } else if (viz.stats.found === false) {
-      status.textContent = 'No Path';
-      status.style.color = '#FF3B30';
+      status.textContent = "No Path";
+      status.style.color = "#FF3B30";
     } else {
-      status.textContent = '';
+      status.textContent = "";
     }
 
-    $('speed-val').textContent = viz.speed;
-    $('speed-slider').value = viz.speed;
-    $('race-speed-val').textContent = viz.speed;
-    $('race-speed-slider').value = viz.speed;
+    $("speed-val").textContent = viz.speed;
+    $("speed-slider").value = viz.speed;
+    $("race-speed-val").textContent = viz.speed;
+    $("race-speed-slider").value = viz.speed;
 
-    if (document.activeElement !== $('inp-rows')) $('inp-rows').value = viz.rows;
-    if (document.activeElement !== $('inp-cols')) $('inp-cols').value = viz.cols;
+    if (document.activeElement !== $("inp-rows"))
+      $("inp-rows").value = viz.rows;
+    if (document.activeElement !== $("inp-cols"))
+      $("inp-cols").value = viz.cols;
 
-    $('algo-name').textContent = ALG_NAMES[viz.cur_alg];
+    $("algo-name").textContent = ALG_NAMES[viz.cur_alg];
 
-    document.querySelectorAll('.dd-item').forEach((item, i) => {
-      item.classList.toggle('selected', i === viz.cur_alg);
-      if (i === viz.cur_alg && !item.querySelector('.check')) {
+    document.querySelectorAll(".dd-item").forEach((item, i) => {
+      item.classList.toggle("selected", i === viz.cur_alg);
+      if (i === viz.cur_alg && !item.querySelector(".check")) {
         item.innerHTML += '<span class="check"></span>';
       } else if (i !== viz.cur_alg) {
-        const check = item.querySelector('.check');
+        const check = item.querySelector(".check");
         if (check) check.remove();
       }
     });
 
-    const sidebar = $('viz-sidebar');
-    sidebar.classList.toggle('expanded-stats', viz.finished || viz.stats.found !== null);
-
+    const sidebar = $("viz-sidebar");
+    sidebar.classList.toggle(
+      "expanded-stats",
+      viz.finished || viz.stats.found !== null,
+    );
   }
 
   async function poll() {
-    if (state.tab !== 'visualize') return;
+    if (state.tab !== "visualize") return;
     try {
       const prevFinished = !!state.viz?.finished;
-      state.viz = await (await fetch('/api/state')).json();
+      state.viz = await (await fetch("/api/state")).json();
       if (prevFinished && !state.viz.finished) {
-        gZoom = 1; gPanX = 0; gPanY = 0;
+        gZoom = 1;
+        gPanX = 0;
+        gPanY = 0;
       }
       if (state.viz.rows !== lastVizRows || state.viz.cols !== lastVizCols) {
         lastVizRows = state.viz.rows;
         lastVizCols = state.viz.cols;
         prevGrid = null;
         animCells.clear();
-        gZoom = 1; gPanX = 0; gPanY = 0;
+        gZoom = 1;
+        gPanX = 0;
+        gPanY = 0;
       }
-      if (state.viz.grid) updateAnimations(state.viz.grid, state.viz.rows, state.viz.cols);
+      if (state.viz.grid)
+        updateAnimations(state.viz.grid, state.viz.rows, state.viz.cols);
       updateUI();
     } catch (_) {}
   }
 
   function render() {
-    if (state.tab === 'visualize') {
-      fitCanvas(gridCanvas, $('grid-area'));
+    if (state.tab === "visualize") {
+      fitCanvas(gridCanvas, $("grid-area"));
       drawGrid();
     }
     requestAnimationFrame(render);
   }
 
   function onResize() {
-    if (state.tab === 'visualize') {
-      fitCanvas(gridCanvas, $('grid-area'));
+    if (state.tab === "visualize") {
+      fitCanvas(gridCanvas, $("grid-area"));
     }
   }
 
   function bindUI() {
     buildAlgoList();
 
-    $('algo-btn').addEventListener('click', () => {
+    $("algo-btn").addEventListener("click", () => {
       ddOpen = !ddOpen;
-      $('algo-list').classList.toggle('hidden', !ddOpen);
+      $("algo-list").classList.toggle("hidden", !ddOpen);
     });
-    document.addEventListener('click', e => {
-      if (ddOpen && !$('algo-dd').contains(e.target)) {
+    document.addEventListener("click", (e) => {
+      if (ddOpen && !$("algo-dd").contains(e.target)) {
         ddOpen = false;
-        $('algo-list').classList.add('hidden');
+        $("algo-list").classList.add("hidden");
       }
     });
 
-    $('btn-run').addEventListener('click', () => act({action:'run'}));
-    $('btn-step-back').addEventListener('click', () => act({action:'step_back'}));
-    $('btn-step-fwd').addEventListener('click', () => act({action:'step'}));
-    $('btn-cancel').addEventListener('click', () => act({action:'cancel_algo'}));
-    $('btn-clear').addEventListener('click', () => act({action:'clear'}));
-    $('btn-maze').addEventListener('click', () => act({action:'maze'}));
-    $('btn-weighted-maze').addEventListener('click', () => act({action:'weighted_maze'}));
-$('btn-reset').addEventListener('click', () => act({action:'reset'}));
+    $("btn-run").addEventListener("click", () => act({ action: "run" }));
+    $("btn-step-back").addEventListener("click", () =>
+      act({ action: "step_back" }),
+    );
+    $("btn-step-fwd").addEventListener("click", () => act({ action: "step" }));
+    $("btn-cancel").addEventListener("click", () =>
+      act({ action: "cancel_algo" }),
+    );
+    $("btn-clear").addEventListener("click", () => act({ action: "clear" }));
+    $("btn-maze").addEventListener("click", () => act({ action: "maze" }));
+    $("btn-weighted-maze").addEventListener("click", () =>
+      act({ action: "weighted_maze" }),
+    );
+    $("btn-reset").addEventListener("click", () => act({ action: "reset" }));
 
-    $('btn-cp-toggle').addEventListener('click', () => {
+    $("btn-cp-toggle").addEventListener("click", () => {
       if (vizState()?.checkpoint) {
-        act({action:'remove_checkpoint'});
+        act({ action: "remove_checkpoint" });
       } else {
         cpPlaceMode = !cpPlaceMode;
         if (cpPlaceMode) setTerrainBrush(0);
-        $('btn-cp-toggle').classList.toggle('btn-selected', cpPlaceMode);
+        $("btn-cp-toggle").classList.toggle("btn-selected", cpPlaceMode);
       }
     });
 
-    document.querySelectorAll('.btn-terrain').forEach(button => {
-      button.addEventListener('click', () => setTerrainBrush(+button.dataset.terrain));
+    document.querySelectorAll(".btn-terrain").forEach((button) => {
+      button.addEventListener("click", () =>
+        setTerrainBrush(+button.dataset.terrain),
+      );
     });
 
-    $('btn-spd-down').addEventListener('click', () => {
+    $("btn-spd-down").addEventListener("click", () => {
       const v = Math.max(1, (vizState()?.speed || 20) - 1);
-      $('speed-val').textContent = v;
-      $('speed-slider').value = v;
-      act({action:'speed', value:v});
+      $("speed-val").textContent = v;
+      $("speed-slider").value = v;
+      act({ action: "speed", value: v });
     });
-    $('btn-spd-up').addEventListener('click', () => {
+    $("btn-spd-up").addEventListener("click", () => {
       const v = Math.min(400, (vizState()?.speed || 20) + 1);
-      $('speed-val').textContent = v;
-      $('speed-slider').value = v;
-      act({action:'speed', value:v});
+      $("speed-val").textContent = v;
+      $("speed-slider").value = v;
+      act({ action: "speed", value: v });
     });
-    $('speed-slider').addEventListener('input', e => {
-      $('speed-val').textContent = e.target.value;
-      act({action:'speed', value:+e.target.value});
+    $("speed-slider").addEventListener("input", (e) => {
+      $("speed-val").textContent = e.target.value;
+      act({ action: "speed", value: +e.target.value });
     });
 
-    $('btn-row-dn').addEventListener('click', () => act({action:'change_grid', dr:-1, dc:0}));
-    $('btn-row-up').addEventListener('click', () => act({action:'change_grid', dr:1, dc:0}));
-    $('btn-col-dn').addEventListener('click', () => act({action:'change_grid', dr:0, dc:-1}));
-    $('btn-col-up').addEventListener('click', () => act({action:'change_grid', dr:0, dc:1}));
+    $("btn-row-dn").addEventListener("click", () =>
+      act({ action: "change_grid", dr: -1, dc: 0 }),
+    );
+    $("btn-row-up").addEventListener("click", () =>
+      act({ action: "change_grid", dr: 1, dc: 0 }),
+    );
+    $("btn-col-dn").addEventListener("click", () =>
+      act({ action: "change_grid", dr: 0, dc: -1 }),
+    );
+    $("btn-col-up").addEventListener("click", () =>
+      act({ action: "change_grid", dr: 0, dc: 1 }),
+    );
 
-    ['inp-rows', 'inp-cols'].forEach(id => {
-      $(id).addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          const rows = +$('inp-rows').value || vizState()?.rows || 28;
-          const cols = +$('inp-cols').value || vizState()?.cols || 40;
-          act({action:'set_grid', rows, cols});
+    ["inp-rows", "inp-cols"].forEach((id) => {
+      $(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const rows = +$("inp-rows").value || vizState()?.rows || 28;
+          const cols = +$("inp-cols").value || vizState()?.cols || 40;
+          act({ action: "set_grid", rows, cols });
           e.target.blur();
         }
       });
     });
 
-    document.addEventListener('keydown', e => {
-      if (e.target.tagName === 'INPUT') return;
-      if (e.key === ' ') {
+    document.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT") return;
+      if (e.key === " ") {
         e.preventDefault();
-        act({action:'run'});
+        act({ action: "run" });
       }
-      if (e.key === '.' && state.tab === 'visualize') act({action:'step'});
-      if (e.key === ',' && state.tab === 'visualize') act({action:'step_back'});
-      if (e.key === 'r' && state.tab === 'visualize') act({action:'reset'});
-      if (e.key === 'Escape' && state.tab === 'visualize') act({action:'cancel_algo'});
+      if (e.key === "." && state.tab === "visualize") act({ action: "step" });
+      if (e.key === "," && state.tab === "visualize")
+        act({ action: "step_back" });
+      if (e.key === "r" && state.tab === "visualize") act({ action: "reset" });
+      if (e.key === "Escape" && state.tab === "visualize")
+        act({ action: "cancel_algo" });
     });
 
     function applyWallOptimistic(p, remove) {
@@ -409,12 +448,12 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
       viz.grid[idx] = terrain;
     }
 
-    gridCanvas.addEventListener('mousedown', e => {
+    gridCanvas.addEventListener("mousedown", (e) => {
       const viz = vizState();
       // In view mode (finished): pan the grid, no editing
       if (viz?.finished) {
         gDrag = { sx: e.clientX, sy: e.clientY, ox: gPanX, oy: gPanY };
-        document.body.style.cursor = 'grabbing';
+        document.body.style.cursor = "grabbing";
         return;
       }
       const p = gridPos(e);
@@ -423,40 +462,46 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
         mBtn = e.button;
         lastWallPos = p;
         applyTerrainOptimistic(p, e.button === 2 ? 0 : terrainBrush);
-        act({action:'set_terrain', r:p.r, c:p.c, terrain: e.button === 2 ? 0 : terrainBrush});
+        act({
+          action: "set_terrain",
+          r: p.r,
+          c: p.c,
+          terrain: e.button === 2 ? 0 : terrainBrush,
+        });
         return;
       }
       if (e.button === 0 && p && !viz?.running) {
         const t = viz?.grid?.[p.r * (viz?.cols ?? 0) + p.c];
         if (t === 2) {
-          dragType = 'start';
+          dragType = "start";
           dragCell = { ...p };
           lastDragSent = { ...p };
-          document.body.style.cursor = 'grabbing';
+          document.body.style.cursor = "grabbing";
           return;
         }
         if (t === 3) {
-          dragType = 'end';
+          dragType = "end";
           dragCell = { ...p };
           lastDragSent = { ...p };
-          document.body.style.cursor = 'grabbing';
+          document.body.style.cursor = "grabbing";
           return;
         }
         if (t === 7) {
-          dragType = 'checkpoint';
+          dragType = "checkpoint";
           dragCell = { ...p };
           lastDragSent = { ...p };
-          document.body.style.cursor = 'grabbing';
+          document.body.style.cursor = "grabbing";
           return;
         }
       }
       if (e.button === 0 && (e.shiftKey || cpPlaceMode) && p && !viz?.running) {
         const t = viz?.grid?.[p.r * (viz?.cols ?? 0) + p.c];
-        if (t === 7) act({action:'remove_checkpoint'});
-        else if (t !== 2 && t !== 3) act({action:'set_checkpoint', r:p.r, c:p.c});
+        if (t === 7) act({ action: "remove_checkpoint" });
+        else if (t !== 2 && t !== 3)
+          act({ action: "set_checkpoint", r: p.r, c: p.c });
         if (cpPlaceMode) {
           cpPlaceMode = false;
-          $('btn-cp-toggle').classList.remove('btn-selected');
+          $("btn-cp-toggle").classList.remove("btn-selected");
         }
         return;
       }
@@ -465,22 +510,22 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
       mBtn = e.button;
       lastWallPos = p;
       applyWallOptimistic(p, e.button === 2);
-      act({action:'grid_cell', r:p.r, c:p.c, remove: e.button === 2});
+      act({ action: "grid_cell", r: p.r, c: p.c, remove: e.button === 2 });
     });
 
-    gridCanvas.addEventListener('mousemove', e => {
+    gridCanvas.addEventListener("mousemove", (e) => {
       const viz = vizState();
       if (viz?.finished) {
-        gridCanvas.style.cursor = gDrag ? 'grabbing' : 'grab';
+        gridCanvas.style.cursor = gDrag ? "grabbing" : "grab";
         return;
       }
       if (!mDown && !dragType) {
         const p = gridPos(e);
         if (p && viz?.grid && !viz.running) {
           const t = viz.grid[p.r * viz.cols + p.c];
-          gridCanvas.style.cursor = (t === 2 || t === 3 || t === 7) ? 'grab' : '';
+          gridCanvas.style.cursor = t === 2 || t === 3 || t === 7 ? "grab" : "";
         } else {
-          gridCanvas.style.cursor = '';
+          gridCanvas.style.cursor = "";
         }
       }
       if (!mDown) return;
@@ -490,56 +535,70 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
       lastWallPos = p;
       if (terrainBrush > 0) {
         applyTerrainOptimistic(p, mBtn === 2 ? 0 : terrainBrush);
-        act({action:'set_terrain', r:p.r, c:p.c, terrain: mBtn === 2 ? 0 : terrainBrush});
+        act({
+          action: "set_terrain",
+          r: p.r,
+          c: p.c,
+          terrain: mBtn === 2 ? 0 : terrainBrush,
+        });
       } else {
         applyWallOptimistic(p, mBtn === 2);
-        act({action:'grid_cell', r:p.r, c:p.c, remove: mBtn === 2});
+        act({ action: "grid_cell", r: p.r, c: p.c, remove: mBtn === 2 });
       }
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener("mouseup", () => {
       dragType = null;
       dragCell = null;
       lastDragSent = null;
       lastWallPos = null;
-      document.body.style.cursor = '';
+      document.body.style.cursor = "";
       mDown = false;
       gDrag = null;
     });
-    gridCanvas.addEventListener('contextmenu', e => e.preventDefault());
+    gridCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
-    gridCanvas.addEventListener('wheel', e => {
-      const viz = vizState();
-      if (!viz?.finished) return;
-      e.preventDefault();
-      const f = e.deltaY < 0 ? 1.12 : 0.88;
-      const nz = Math.max(0.5, Math.min(10, gZoom * f));
-      const cw = gridCanvas.clientWidth;
-      const ch = gridCanvas.clientHeight;
-      const rows = viz.rows, cols = viz.cols;
-      const rect = gridCanvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const { cell, ox, oy } = gInfo;
-      const wx = (mx - ox) / cell;
-      const wy = (my - oy) / cell;
-      const baseCellRaw = Math.min(cw / cols, ch / rows);
-      const baseCell = Math.max(1, Math.floor(baseCellRaw));
-      const newCell = Math.max(1, Math.floor(baseCell * nz));
-      const newBasOx = Math.floor((cw - cols * newCell) / 2);
-      const newBasOy = Math.floor((ch - rows * newCell) / 2);
-      gPanX = mx - newBasOx - wx * newCell;
-      gPanY = my - newBasOy - wy * newCell;
-      gZoom = nz;
-    }, { passive: false });
+    gridCanvas.addEventListener(
+      "wheel",
+      (e) => {
+        const viz = vizState();
+        if (!viz?.finished) return;
+        e.preventDefault();
+        const f = e.deltaY < 0 ? 1.12 : 0.88;
+        const nz = Math.max(0.5, Math.min(10, gZoom * f));
+        const cw = gridCanvas.clientWidth;
+        const ch = gridCanvas.clientHeight;
+        const rows = viz.rows,
+          cols = viz.cols;
+        const rect = gridCanvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const { cell, ox, oy } = gInfo;
+        const wx = (mx - ox) / cell;
+        const wy = (my - oy) / cell;
+        const baseCellRaw = Math.min(cw / cols, ch / rows);
+        const baseCell = Math.max(1, Math.floor(baseCellRaw));
+        const newCell = Math.max(1, Math.floor(baseCell * nz));
+        const newBasOx = Math.floor((cw - cols * newCell) / 2);
+        const newBasOy = Math.floor((ch - rows * newCell) / 2);
+        gPanX = mx - newBasOx - wx * newCell;
+        gPanY = my - newBasOy - wy * newCell;
+        gZoom = nz;
+      },
+      { passive: false },
+    );
 
-    document.addEventListener('mousemove', e => {
+    document.addEventListener("mousemove", (e) => {
       if (dragType) {
         const p = gridPos(e);
         if (p && (p.r !== lastDragSent?.r || p.c !== lastDragSent?.c)) {
           dragCell = { ...p };
           lastDragSent = { ...p };
-          const actionMap = { start:'set_start', end:'set_end', checkpoint:'set_checkpoint' };
+          const actionMap = {
+            start: "set_start",
+            end: "set_end",
+            checkpoint: "set_checkpoint",
+          };
           act({ action: actionMap[dragType], r: p.r, c: p.c });
         }
       }
@@ -551,14 +610,14 @@ $('btn-reset').addEventListener('click', () => act({action:'reset'}));
   }
 
   function init() {
-    gridCanvas = $('grid-canvas');
-    gridCtx = gridCanvas.getContext('2d');
+    gridCanvas = $("grid-canvas");
+    gridCtx = gridCanvas.getContext("2d");
 
     bindUI();
 
-    window.addEventListener('resize', onResize);
-    window.App.onTabChange(tab => {
-      if (tab === 'visualize') onResize();
+    window.addEventListener("resize", onResize);
+    window.App.onTabChange((tab) => {
+      if (tab === "visualize") onResize();
     });
 
     onResize();

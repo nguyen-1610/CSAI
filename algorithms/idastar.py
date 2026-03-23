@@ -18,8 +18,11 @@ def algo_idastar():
         return
 
     threshold = heuristic(s, e)
+    iterations = 0
+    peak_mem = 0
 
     while True:
+        iterations += 1
         min_exceeded = float('inf')
         found = False
         came_from = {s: None}
@@ -56,6 +59,7 @@ def algo_idastar():
             came_from[nb] = node
             total_visited.add(nb)
             path_set.add(nb)
+            peak_mem = max(peak_mem, len(path_set))
 
             elapsed += time.perf_counter() - t_step
             yield total_visited.copy(), set()
@@ -72,7 +76,8 @@ def algo_idastar():
             p = reconstruct_path(came_from, e)
             state.path_cells = p
             state.stats.update(nodes=len(total_visited), path=len(p),
-                               cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True)
+                               cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True,
+                               iterations=iterations, peak_memory=peak_mem)
             state.came_from = came_from
             state.finished = True
             return
@@ -86,6 +91,7 @@ def algo_idastar():
         t_step = time.perf_counter()
 
     state.stats.update(nodes=len(total_visited), found=False,
-                       time=elapsed + (time.perf_counter() - t_step))
+                       time=elapsed + (time.perf_counter() - t_step),
+                       iterations=iterations, peak_memory=peak_mem)
     state.came_from = came_from
     state.finished = True

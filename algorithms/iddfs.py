@@ -33,7 +33,11 @@ def algo_iddfs():
         state.finished = True
         return
 
+    iterations = 0
+    peak_mem = 0
+
     for depth in range(state.rows * state.cols + 1):
+        iterations += 1
         came_from = {s: None}
         path_set = {s}
         # Transposition table: track max budget at which each node was explored.
@@ -70,6 +74,7 @@ def algo_iddfs():
             total_visited.add(nb)
             came_from[nb] = node
             path_set.add(nb)
+            peak_mem = max(peak_mem, len(path_set))
 
             if nb == e:
                 found = True
@@ -96,6 +101,8 @@ def algo_iddfs():
                 cost=path_cost(p),
                 time=elapsed + (time.perf_counter() - t_step),
                 found=True,
+                iterations=iterations,
+                peak_memory=peak_mem,
             )
             state.came_from = came_from
             state.finished = True
@@ -109,6 +116,8 @@ def algo_iddfs():
         nodes=len(total_visited),
         found=False,
         time=elapsed + (time.perf_counter() - t_step),
+        iterations=iterations,
+        peak_memory=peak_mem,
     )
     state.came_from = came_from
     state.finished = True
