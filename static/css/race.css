@@ -106,5 +106,5 @@
 
 .chart.chart-radar {
   grid-column: 1 / -1;
-  height: clamp(520px, 80vh, 760px);
+  height: clamp(520px, 75vh, 760px);
 }
