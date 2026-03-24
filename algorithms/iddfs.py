@@ -1,24 +1,22 @@
 import time
-from core.grid import get_neighbors, reconstruct_path, path_cost
+
+from algorithms._contract import finalize_failure, finalize_success
+from core.grid import get_neighbors, path_cost, reconstruct_path
 from core.state import state
 
 
 def algo_iddfs():
     s, e = state.start_cell, state.end_cell
-    # elapsed: tổng thời gian CPU thuần túy của thuật toán (không tính thời gian yield chờ GUI)
     elapsed = 0.0
     t_step = time.perf_counter()
-    total_visited = set()
-    total_visited.add(s)
+    total_visited = {s}
+    came_from = {s: None}
+    peak_mem = 1
 
     if s == e:
-        state.path_cells = [s]
-        state.stats.update(nodes=1, path=1, cost=0,
-                           time=time.perf_counter() - t_step, found=True)
-        state.finished = True
+        finalize_success([s], came_from, 1, 0, 0.0, iterations=1, peak_memory=peak_mem)
         return
 
-    # Pre-check: flood-fill để phát hiện end không liên thông với start
     reachable = {s}
     queue = [s]
     while queue:
@@ -27,27 +25,25 @@ def algo_iddfs():
             if nb not in reachable:
                 reachable.add(nb)
                 queue.append(nb)
+
     if e not in reachable:
-        state.stats.update(nodes=len(reachable), found=False,
-                           time=time.perf_counter() - t_step)
-        state.finished = True
+        finalize_failure(
+            came_from,
+            len(reachable),
+            elapsed + (time.perf_counter() - t_step),
+            iterations=1,
+            peak_memory=len(reachable),
+        )
         return
 
     iterations = 0
-    peak_mem = 0
 
     for depth in range(state.rows * state.cols + 1):
         iterations += 1
         came_from = {s: None}
         path_set = {s}
-        # Transposition table: track max budget at which each node was explored.
-        # If we reach a node with budget <= previously explored, skip it.
-        # This prevents exponential blowup in open/sparse mazes.
         visited_at = {}
-
         found = False
-        # Frame: (node, nb_iter, remaining, should_clean)
-        # should_clean=True → xóa node khỏi path_set/came_from khi frame bị pop
         stack = [(s, iter(get_neighbors(*s)), depth, False)]
 
         while stack:
@@ -55,7 +51,6 @@ def algo_iddfs():
             nb = next(nb_iter, None)
 
             if nb is None:
-                # Hết neighbor → backtrack: mỗi node tự dọn dẹp chính nó khi pop
                 popped_node, _, _, should_clean = stack.pop()
                 if should_clean:
                     path_set.discard(popped_node)
@@ -65,7 +60,6 @@ def algo_iddfs():
             if nb in path_set:
                 continue
 
-            # Pruning: skip nếu đã duyệt node này với budget >= hiện tại
             new_budget = remaining - 1
             if visited_at.get(nb, -1) >= new_budget:
                 continue
@@ -88,36 +82,30 @@ def algo_iddfs():
             t_step = time.perf_counter()
 
             if new_budget <= 0:
-                # Leaf node: không push stack → cleanup ngay sau yield
                 path_set.discard(nb)
                 came_from.pop(nb, None)
 
         if found:
-            p = reconstruct_path(came_from, e)
-            state.path_cells = p
-            state.stats.update(
-                nodes=len(total_visited),
-                path=len(p),
-                cost=path_cost(p),
-                time=elapsed + (time.perf_counter() - t_step),
-                found=True,
+            path = reconstruct_path(came_from, e)
+            finalize_success(
+                path,
+                came_from,
+                len(total_visited),
+                path_cost(path),
+                elapsed + (time.perf_counter() - t_step),
                 iterations=iterations,
                 peak_memory=peak_mem,
             )
-            state.came_from = came_from
-            state.finished = True
             return
 
         elapsed += time.perf_counter() - t_step
         yield total_visited.copy(), set()
         t_step = time.perf_counter()
 
-    state.stats.update(
-        nodes=len(total_visited),
-        found=False,
-        time=elapsed + (time.perf_counter() - t_step),
+    finalize_failure(
+        came_from,
+        len(total_visited),
+        elapsed + (time.perf_counter() - t_step),
         iterations=iterations,
         peak_memory=peak_mem,
     )
-    state.came_from = came_from
-    state.finished = True

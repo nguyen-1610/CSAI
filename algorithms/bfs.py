@@ -1,6 +1,8 @@
 import time
 from collections import deque
-from core.grid import get_neighbors, reconstruct_path, path_cost
+
+from algorithms._contract import finalize_failure, finalize_success
+from core.grid import get_neighbors, path_cost, reconstruct_path
 from core.state import state
 
 
@@ -8,45 +10,48 @@ def algo_bfs():
     s, e = state.start_cell, state.end_cell
     elapsed = 0.0
     t_step = time.perf_counter()
-    # deque cho phép popleft() O(1) — nếu dùng list thì pop(0) sẽ là O(n)
-    queue     = deque([s])
-    # came_from lưu node cha để truy vết đường đi sau khi tìm thấy đích
+    queue = deque([s])
     came_from = {s: None}
-    visited   = set()
-    peak_mem  = 0
+    visited = set()
+    peak_mem = 1
+
+    if s == e:
+        finalize_success([s], came_from, 1, 0, 0.0, iterations=1, peak_memory=peak_mem)
+        return
 
     while queue:
-        # Lấy node ở đầu hàng đợi (FIFO) — đây là điểm khác biệt cốt lõi so với DFS
         curr = queue.popleft()
-        # Bỏ qua nếu đã duyệt (có thể bị thêm vào queue nhiều lần trước khi xử lý)
         if curr in visited:
             continue
         visited.add(curr)
 
         if curr == e:
-            p = reconstruct_path(came_from, e)
-            state.path_cells = p
-            state.stats.update(nodes=len(visited), path=len(p),
-                               cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True,
-                               iterations=1, peak_memory=peak_mem)
-            state.came_from = came_from
-            state.finished = True
+            path = reconstruct_path(came_from, e)
+            finalize_success(
+                path,
+                came_from,
+                len(visited),
+                path_cost(path),
+                elapsed + (time.perf_counter() - t_step),
+                iterations=1,
+                peak_memory=peak_mem,
+            )
             return
 
         for nb in get_neighbors(*curr):
-            # Kiểm tra came_from thay vì visited để tránh thêm cùng 1 node nhiều lần
-            # vào queue (tiết kiệm bộ nhớ và tránh duyệt trùng)
             if nb not in visited and nb not in came_from:
                 came_from[nb] = curr
                 queue.append(nb)
 
         peak_mem = max(peak_mem, len(came_from) + len(queue))
-        # Yield snapshot để GUI vẽ animation: visited=đã duyệt, frontier=đang chờ
         elapsed += time.perf_counter() - t_step
         yield visited.copy(), set(queue)
         t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step),
-                       iterations=1, peak_memory=peak_mem)
-    state.came_from = came_from
-    state.finished = True
+    finalize_failure(
+        came_from,
+        len(visited),
+        elapsed + (time.perf_counter() - t_step),
+        iterations=1,
+        peak_memory=peak_mem,
+    )

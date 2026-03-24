@@ -1,6 +1,8 @@
 import time
 from collections import deque
-from core.grid import get_neighbors, reconstruct_path, path_cost
+
+from algorithms._contract import finalize_failure, finalize_success
+from core.grid import get_neighbors, path_cost, reconstruct_path
 from core.state import state
 
 
@@ -8,10 +10,14 @@ def algo_dfs():
     s, e = state.start_cell, state.end_cell
     elapsed = 0.0
     t_step = time.perf_counter()
-    stack     = deque([s])
+    stack = deque([s])
     came_from = {s: None}
-    visited   = set()
-    peak_mem  = 0
+    visited = set()
+    peak_mem = 1
+
+    if s == e:
+        finalize_success([s], came_from, 1, 0, 0.0, iterations=1, peak_memory=peak_mem)
+        return
 
     while stack:
         curr = stack.pop()
@@ -20,13 +26,16 @@ def algo_dfs():
         visited.add(curr)
 
         if curr == e:
-            p = reconstruct_path(came_from, e)
-            state.path_cells = p
-            state.stats.update(nodes=len(visited), path=len(p),
-                               cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True,
-                               iterations=1, peak_memory=peak_mem)
-            state.came_from = came_from
-            state.finished = True
+            path = reconstruct_path(came_from, e)
+            finalize_success(
+                path,
+                came_from,
+                len(visited),
+                path_cost(path),
+                elapsed + (time.perf_counter() - t_step),
+                iterations=1,
+                peak_memory=peak_mem,
+            )
             return
 
         for nb in get_neighbors(*curr):
@@ -40,7 +49,10 @@ def algo_dfs():
         yield visited.copy(), set(stack)
         t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(visited), found=False, time=elapsed + (time.perf_counter() - t_step),
-                       iterations=1, peak_memory=peak_mem)
-    state.came_from = came_from
-    state.finished = True
+    finalize_failure(
+        came_from,
+        len(visited),
+        elapsed + (time.perf_counter() - t_step),
+        iterations=1,
+        peak_memory=peak_mem,
+    )

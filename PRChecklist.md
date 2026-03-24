@@ -103,19 +103,19 @@ Notes: Race now reads grid shape and speed from `/api/race`, and unfinished Visu
 
 Owner:
 Branch:
-Status:
-Notes:
+Status: Implemented, manual smoke pending
+Notes: Added shared finalize helpers, normalized algorithm stats/came_from/finished, and hardened checkpoint wrappers.
 
-- [ ] Liet ke contract chung cho moi thuat toan
-- [ ] Chuan hoa `state.stats` du field cho tat ca thuat toan
-- [ ] Chuan hoa `state.came_from`
-- [ ] Chuan hoa `state.finished`
-- [ ] Ra nhanh thoat som cua cac thuat toan
-- [ ] Don assumption ngam trong checkpoint wrapper
-- [ ] Can nhac helper finalize success/failure dung chung
-- [ ] Xoa placeholder hoac code thua trong `algorithms/__init__.py`
-- [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Chay test thuat toan/race/checkpoint
+- [X] Liet ke contract chung cho moi thuat toan
+- [X] Chuan hoa `state.stats` du field cho tat ca thuat toan
+- [X] Chuan hoa `state.came_from`
+- [X] Chuan hoa `state.finished`
+- [X] Ra nhanh thoat som cua cac thuat toan
+- [X] Don assumption ngam trong checkpoint wrapper
+- [X] Can nhac helper finalize success/failure dung chung
+- [X] Xoa placeholder hoac code thua trong `algorithms/__init__.py`
+- [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
+- [X] Chay test thuat toan/race/checkpoint
 - [ ] Smoke test tay `Visualize`
 - [ ] Smoke test tay `Race`
 
@@ -123,18 +123,18 @@ Notes:
 
 Owner:
 Branch:
-Status:
-Notes:
+Status: Implemented, manual smoke pending
+Notes: Reduced `race.js` duplication with shared sizing/badge helpers and preserved the tighter Race layout.
 
-- [ ] Sua call signature cua `updateRaceAnimations()`
-- [ ] Tach helper badge text
-- [ ] Tach helper badge color
-- [ ] Ra helper sizing cho panel/chart neu can
-- [ ] Giam duplication trong `race.js`
-- [ ] Ra lai hard-coded value lon trong chart/radar/panel
-- [ ] Giu nguyen hanh vi UI hien tai sau refactor
-- [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Neu can, chay `node --check static/js/race.js`
+- [X] Sua call signature cua `updateRaceAnimations()`
+- [X] Tach helper badge text
+- [X] Tach helper badge color
+- [X] Ra helper sizing cho panel/chart neu can
+- [X] Giam duplication trong `race.js`
+- [X] Ra lai hard-coded value lon trong chart/radar/panel
+- [X] Giu nguyen hanh vi UI hien tai sau refactor
+- [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
+- [X] Neu can, chay `node --check static/js/race.js`
 - [ ] Smoke test tay `Race`
 
 ## PR 6: Don Logic Cu O Visualize

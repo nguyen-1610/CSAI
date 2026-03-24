@@ -1,5 +1,7 @@
 import time
-from core.grid import get_neighbors, reconstruct_path, heuristic, get_terrain_cost, path_cost
+
+from algorithms._contract import finalize_failure, finalize_success
+from core.grid import get_neighbors, get_terrain_cost, heuristic, path_cost, reconstruct_path
 from core.state import state
 
 
@@ -7,29 +9,23 @@ def algo_idastar():
     s, e = state.start_cell, state.end_cell
     elapsed = 0.0
     t_step = time.perf_counter()
-    total_visited = set()
+    total_visited = {s}
+    peak_mem = 1
 
     if s == e:
-        state.path_cells = [s]
-        state.stats.update(nodes=1, path=1, cost=0,
-                           time=time.perf_counter() - t_step, found=True)
-        state.came_from = {s: None}
-        state.finished = True
+        finalize_success([s], {s: None}, 1, 0, 0.0, iterations=1, peak_memory=peak_mem)
         return
 
     threshold = heuristic(s, e)
     iterations = 0
-    peak_mem = 0
 
     while True:
         iterations += 1
-        min_exceeded = float('inf')
+        min_exceeded = float("inf")
         found = False
         came_from = {s: None}
         path_set = {s}
-        total_visited.add(s)
 
-        # Iterative DFS stack: (node, g, child_index, children_list)
         init_children = [nb for nb in get_neighbors(*s) if nb not in path_set]
         stack = [(s, 0, 0, init_children)]
 
@@ -37,7 +33,6 @@ def algo_idastar():
             node, g, child_idx, children = stack[-1]
 
             if child_idx >= len(children):
-                # All children explored — backtrack
                 path_set.discard(node)
                 stack.pop()
                 continue
@@ -55,7 +50,6 @@ def algo_idastar():
                     min_exceeded = f
                 continue
 
-            # Visit nb
             came_from[nb] = node
             total_visited.add(nb)
             path_set.add(nb)
@@ -73,25 +67,30 @@ def algo_idastar():
             stack.append((nb, g + step, 0, nb_children))
 
         if found:
-            p = reconstruct_path(came_from, e)
-            state.path_cells = p
-            state.stats.update(nodes=len(total_visited), path=len(p),
-                               cost=path_cost(p), time=elapsed + (time.perf_counter() - t_step), found=True,
-                               iterations=iterations, peak_memory=peak_mem)
-            state.came_from = came_from
-            state.finished = True
+            path = reconstruct_path(came_from, e)
+            finalize_success(
+                path,
+                came_from,
+                len(total_visited),
+                path_cost(path),
+                elapsed + (time.perf_counter() - t_step),
+                iterations=iterations,
+                peak_memory=peak_mem,
+            )
             return
 
-        if min_exceeded == float('inf'):
+        if min_exceeded == float("inf"):
             break
 
         threshold = min_exceeded
         elapsed += time.perf_counter() - t_step
-        yield total_visited.copy(), set()   # show progress between iterations
+        yield total_visited.copy(), set()
         t_step = time.perf_counter()
 
-    state.stats.update(nodes=len(total_visited), found=False,
-                       time=elapsed + (time.perf_counter() - t_step),
-                       iterations=iterations, peak_memory=peak_mem)
-    state.came_from = came_from
-    state.finished = True
+    finalize_failure(
+        came_from,
+        len(total_visited),
+        elapsed + (time.perf_counter() - t_step),
+        iterations=iterations,
+        peak_memory=peak_mem,
+    )

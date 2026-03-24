@@ -4,6 +4,7 @@ import threading
 import time
 
 from algorithms import ALGO_FUNCS, ALG_NAMES
+from algorithms._contract import finalize_failure, finalize_success
 from core.action_handlers import RunnerActionHooks, dispatch_action
 from core.grid import build_grid_array
 from core.state import state
@@ -103,60 +104,71 @@ def get_race_state():
         }
 
 
-def _race_checkpoint_wrap(algo_func):
-    """
-    Checkpoint wrapper safe for race mode (multiple concurrent runners).
+def _path_to_came_from(path):
+    came_from = {}
+    previous = None
+    for node in path:
+        came_from[node] = previous
+        previous = node
+    return came_from
 
-    State is temporarily set only around the FIRST next() call of each
-    sub-generator — the moment the algorithm captures its local s/e —
-    then immediately restored so other runners are not affected.
-    """
-    s  = state.start_cell
-    e  = state.end_cell
+
+def _race_checkpoint_wrap(algo_func):
+    """Checkpoint wrapper safe for race mode (multiple concurrent runners)."""
+    s = state.start_cell
+    e = state.end_cell
     cp = state.checkpoint_cell
 
-    # ── Phase 1: start → checkpoint ───────────────────────────────────
     saved_start = state.start_cell
-    saved_end   = state.end_cell
-    state.start_cell = s   # guard: another runner may have left state.start = cp
-    state.end_cell   = cp
+    saved_end = state.end_cell
+    state.start_cell = s
+    state.end_cell = cp
     gen1 = algo_func()
     vis1 = set()
     first1 = True
     try:
         while True:
             vis, front = next(gen1)
-            if first1:                              # algo captured its (s, cp) — restore
+            if first1:
                 state.start_cell = saved_start
-                state.end_cell   = saved_end
+                state.end_cell = saved_end
                 first1 = False
             vis1 = set(vis)
             yield vis, front
     except StopIteration:
         if first1:
             state.start_cell = saved_start
-            state.end_cell   = saved_end
+            state.end_cell = saved_end
 
-    path1  = list(state.path_cells)
-    found1 = state.stats.get("found")
-    nodes1 = state.stats.get("nodes", 0)
-    cost1  = state.stats.get("cost",  0)
-    time1  = state.stats.get("time",  0.0)
-    state.clear_search()
+    path1 = list(state.path_cells)
+    came_from1 = dict(state.came_from)
+    stats1 = dict(state.stats)
+    found1 = stats1.get("found")
+    nodes1 = stats1.get("nodes", 0)
+    cost1 = stats1.get("cost", 0)
+    time1 = stats1.get("time", 0.0)
+    iter1 = stats1.get("iterations", 1)
+    peak1 = stats1.get("peak_memory", 0)
 
     if not found1:
-        state.finished = True
+        finalize_failure(came_from1, nodes1, time1, iterations=iter1, peak_memory=peak1)
         return
 
-    # ── Phase 2: checkpoint → end ─────────────────────────────────────
     saved_start2 = state.start_cell
     state.start_cell = cp
+    state.end_cell = e
+    state.path_cells = path1
+    state.came_from = dict(came_from1)
+    state.vis_cells = set()
+    state.front_cells = set()
+    state.stats = state.new_stats()
+
     gen2 = algo_func()
     first2 = True
     try:
         while True:
             vis2, front2 = next(gen2)
-            if first2:                              # algo captured its (cp, e) — restore
+            if first2:
                 state.start_cell = saved_start2
                 first2 = False
             yield vis1 | set(vis2), front2 - vis1
@@ -164,26 +176,34 @@ def _race_checkpoint_wrap(algo_func):
         if first2:
             state.start_cell = saved_start2
 
-    path2  = list(state.path_cells)
-    found2 = state.stats.get("found")
-    nodes2 = state.stats.get("nodes", 0)
-    cost2  = state.stats.get("cost",  0)
-    time2  = state.stats.get("time",  0.0)
-
+    path2 = list(state.path_cells)
+    came_from2 = dict(state.came_from)
+    stats2 = dict(state.stats)
+    found2 = stats2.get("found")
+    nodes2 = stats2.get("nodes", 0)
+    cost2 = stats2.get("cost", 0)
+    time2 = stats2.get("time", 0.0)
+    iter2 = stats2.get("iterations", 1)
+    peak2 = stats2.get("peak_memory", 0)
     if found2 and path1 and path2:
         combined = path1 + path2[1:]
-        state.path_cells = combined
-        state.stats.update(
-            nodes=nodes1 + nodes2,
-            path=len(combined),
-            cost=cost1 + cost2,
-            time=time1 + time2,
-            found=True,
+        finalize_success(
+            combined,
+            _path_to_came_from(combined),
+            nodes1 + nodes2,
+            cost1 + cost2,
+            time1 + time2,
+            iterations=iter1 + iter2,
+            peak_memory=max(peak1, peak2),
         )
     else:
-        state.stats.update(nodes=nodes1 + nodes2, found=False, time=time1 + time2)
-    state.came_from = {}
-    state.finished = True
+        finalize_failure(
+            came_from2,
+            nodes1 + nodes2,
+            time1 + time2,
+            iterations=iter1 + iter2,
+            peak_memory=max(peak1, peak2),
+        )
 
 
 def _checkpoint_wrap(algo_func):
@@ -205,18 +225,22 @@ def _checkpoint_wrap(algo_func):
             pass
 
         path1 = list(state.path_cells)
-        found1 = state.stats.get("found")
-        nodes1 = state.stats.get("nodes", 0)
-        cost1 = state.stats.get("cost", 0)
-        time1 = state.stats.get("time", 0.0)
+        came_from1 = dict(state.came_from)
+        stats1 = dict(state.stats)
+        found1 = stats1.get("found")
+        nodes1 = stats1.get("nodes", 0)
+        cost1 = stats1.get("cost", 0)
+        time1 = stats1.get("time", 0.0)
+        iter1 = stats1.get("iterations", 1)
+        peak1 = stats1.get("peak_memory", 0)
 
         if not found1:
-            state.finished = True
+            finalize_failure(came_from1, nodes1, time1, iterations=iter1, peak_memory=peak1)
             return
 
         state.finished = False
         state.path_cells = path1
-        state.came_from = {}
+        state.came_from = dict(came_from1)
         state.vis_cells = set()
         state.front_cells = set()
         state.stats = state.new_stats()
@@ -233,25 +257,33 @@ def _checkpoint_wrap(algo_func):
             pass
 
         path2 = list(state.path_cells)
-        found2 = state.stats.get("found")
-        nodes2 = state.stats.get("nodes", 0)
-        cost2 = state.stats.get("cost", 0)
-        time2 = state.stats.get("time", 0.0)
-
+        came_from2 = dict(state.came_from)
+        stats2 = dict(state.stats)
+        found2 = stats2.get("found")
+        nodes2 = stats2.get("nodes", 0)
+        cost2 = stats2.get("cost", 0)
+        time2 = stats2.get("time", 0.0)
+        iter2 = stats2.get("iterations", 1)
+        peak2 = stats2.get("peak_memory", 0)
         if found2 and path1 and path2:
             combined = path1 + path2[1:]
-            state.path_cells = combined
-            state.stats.update(
-                nodes=nodes1 + nodes2,
-                path=len(combined),
-                cost=cost1 + cost2,
-                time=time1 + time2,
-                found=True,
+            finalize_success(
+                combined,
+                _path_to_came_from(combined),
+                nodes1 + nodes2,
+                cost1 + cost2,
+                time1 + time2,
+                iterations=iter1 + iter2,
+                peak_memory=max(peak1, peak2),
             )
         else:
-            state.stats.update(nodes=nodes1 + nodes2, found=False, time=time1 + time2)
-        state.came_from = {}
-        state.finished = True
+            finalize_failure(
+                came_from2,
+                nodes1 + nodes2,
+                time1 + time2,
+                iterations=iter1 + iter2,
+                peak_memory=max(peak1, peak2),
+            )
 
     finally:
         state.start_cell = orig_start
@@ -306,7 +338,6 @@ def _start_race_thread():
 
 def _algo_loop():
     with state.runtime_lock:
-        # Record initial state for fresh runs so history[i] == after i gen calls
         if not state.step_history:
             state.step_history.append((set(state.vis_cells), set(state.front_cells)))
             state.step_history_gen_base = 0
@@ -381,7 +412,6 @@ def _start_race():
 def _race_loop():
     with state.runtime_lock:
         race = state.race
-        # Record initial state for fresh runs so history[i] == after i gen calls per runner
         if not race.step_history:
             baseline = {
                 idx: (set(race.runners[idx]["vis"]), set(race.runners[idx]["front"]))
@@ -461,4 +491,3 @@ def handle_action(data):
     """Primary `/api/action` dispatcher used by the Flask route."""
     with state.runtime_lock:
         return dispatch_action(data, _action_hooks())
-

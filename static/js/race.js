@@ -35,6 +35,53 @@ window.RacePage = (() => {
     "IDA* Search": "IDA*",
   };
 
+  const RACE_LAYOUT = {
+    panelGap: 10,
+    panelMinHeight: 120,
+    panelViewportMin: 240,
+    panelViewportMax: 460,
+    panelViewportRatio: 0.42,
+    canvasTrimIdle: 24,
+    canvasTrimDone: 42,
+    maxCols: 4,
+  };
+
+  const RACE_BADGE = {
+    success: "#34C759",
+    failure: "#FF3B30",
+  };
+
+  const RACE_CHART = {
+    titleX: 16,
+    titleY: 21,
+    topPad: 58,
+    sidePad: 96,
+    legendTopGap: 32,
+    legendRowH: 28,
+    labelOffset: 34,
+    minRadius: 90,
+    axisLabelGap: 22,
+    ringCount: 4,
+    ringOuterStroke: 2.2,
+    ringInnerStroke: 1.35,
+    axisStroke: 1.5,
+    vertexRadius: 6,
+    barLeft: 116,
+    barRight: 76,
+    barTop: 32,
+    barBottom: 10,
+    barGap: 8,
+    barMinH: 14,
+    barMaxH: 24,
+    barRadius: 5,
+    legendMinItem: 180,
+    legendLeft: 24,
+    legendBottom: 18,
+    valueBadgePad: 4,
+    valueBadgeH: 13,
+    valueBadgeRadius: 4,
+  };
+
   let racePanelOrder = [];
   const prevRaceGrids = new Map();
   const raceAnimCells = new Map();
@@ -74,6 +121,63 @@ window.RacePage = (() => {
 
   function raceSpeed() {
     return raceState()?.speed || 20;
+  }
+
+  function racePanelColumns(count) {
+    if (count <= 2) return count;
+    if (count <= 4) return 2;
+    if (count <= 6) return 3;
+    return RACE_LAYOUT.maxCols;
+  }
+
+  function racePanelSizing(count, viewportH, hasResults) {
+    const cols = racePanelColumns(count);
+    const rows = Math.ceil(count / cols);
+    const gapTotal = Math.max(0, rows - 1) * RACE_LAYOUT.panelGap;
+    const sectionH = hasResults
+      ? Math.min(
+          Math.max(RACE_LAYOUT.panelViewportMin, Math.round(viewportH * RACE_LAYOUT.panelViewportRatio)),
+          RACE_LAYOUT.panelViewportMax,
+        )
+      : viewportH;
+    const panelH = Math.max(
+      RACE_LAYOUT.panelMinHeight,
+      Math.floor((sectionH - gapTotal) / rows),
+    );
+    const canvasH = Math.max(
+      110,
+      panelH - (hasResults ? RACE_LAYOUT.canvasTrimDone : RACE_LAYOUT.canvasTrimIdle),
+    );
+    return { cols, sectionH, canvasH };
+  }
+
+  function raceBadgeState(runnerData) {
+    if (!runnerData?.done || !runnerData.stats) return null;
+    if (runnerData.stats.found) {
+      return {
+        text: `Path: ${runnerData.stats.path}  |  ${(runnerData.stats.time * 1000).toFixed(2)} ms`,
+        color: RACE_BADGE.success,
+      };
+    }
+    return {
+      text: "No path found",
+      color: RACE_BADGE.failure,
+    };
+  }
+
+  function applyRaceBadge(badge, runnerData) {
+    const badgeState = raceBadgeState(runnerData);
+    if (!badgeState) {
+      badge.style.display = "none";
+      return;
+    }
+    badge.textContent = badgeState.text;
+    badge.style.backgroundColor = badgeState.color;
+    badge.style.display = "block";
+  }
+
+  function raceBadgeFill(color, alpha = "20") {
+    return `${color}${alpha}`;
   }
 
   function updateRaceAnimations(idx, grid, path, gridCols) {
@@ -251,7 +355,7 @@ window.RacePage = (() => {
     ctx.fillStyle = "#8E8E93";
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("ALGORITHM PROFILE", 16, 21);
+    ctx.fillText("ALGORITHM PROFILE", RACE_CHART.titleX, RACE_CHART.titleY);
 
     const axes = [
       { key: "time",         label: "Speed",       invert: true  },
@@ -264,20 +368,21 @@ window.RacePage = (() => {
     const N = axes.length;
     const legendCols = w >= 1180 ? 4 : w >= 860 ? 3 : 2;
     const legendRows = Math.ceil(data.length / legendCols);
-    const topPad = 58;
-    const sidePad = 96;
-    const legendTopGap = 32;
-    const legendRowH = 28;
+    const compact = w < 1120 || h < 460;
+    const topPad = compact ? 52 : RACE_CHART.topPad;
+    const sidePad = compact ? 78 : RACE_CHART.sidePad;
+    const legendTopGap = compact ? 24 : RACE_CHART.legendTopGap;
+    const legendRowH = compact ? 24 : RACE_CHART.legendRowH;
     const legendAreaH = legendRows * legendRowH;
     const bottomPad = legendAreaH + legendTopGap + 4;
     const chartTop = topPad;
     const chartBottom = h - bottomPad;
-    const chartH = Math.max(240, chartBottom - chartTop);
+    const chartH = Math.max(compact ? 210 : 240, chartBottom - chartTop);
     const cx = w / 2;
-    const cy = chartTop + chartH / 2 + 8;
-    const labelOffset = 34;
+    const cy = chartTop + chartH / 2 + (compact ? 4 : 8);
+    const labelOffset = compact ? 28 : RACE_CHART.labelOffset;
     const radius = Math.max(
-      90,
+      RACE_CHART.minRadius,
       Math.min(w / 2 - sidePad - labelOffset, chartH / 2 - labelOffset),
     );
 
@@ -330,7 +435,7 @@ window.RacePage = (() => {
     };
 
     // Grid rings (4 levels)
-    const levels = 4;
+    const levels = RACE_CHART.ringCount;
     for (let l = levels; l >= 1; l--) {
       const r = (radius * l) / levels;
       ctx.beginPath();
@@ -342,7 +447,7 @@ window.RacePage = (() => {
       }
       ctx.closePath();
       ctx.strokeStyle = l === levels ? "#D1D1D6" : "#E5E5EA";
-      ctx.lineWidth = l === levels ? 2.2 : 1.35;
+      ctx.lineWidth = l === levels ? RACE_CHART.ringOuterStroke : RACE_CHART.ringInnerStroke;
       ctx.stroke();
       if (l % 2 === 0) {
         ctx.fillStyle = "#F2F2F720";
@@ -359,11 +464,11 @@ window.RacePage = (() => {
       ctx.moveTo(cx, cy);
       ctx.lineTo(ex, ey);
       ctx.strokeStyle = "#D1D1D6";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = RACE_CHART.axisStroke;
       ctx.stroke();
 
-      const lx = cx + (radius + 22) * Math.cos(angle);
-      const ly = cy + (radius + 22) * Math.sin(angle);
+      const lx = cx + (radius + RACE_CHART.axisLabelGap) * Math.cos(angle);
+      const ly = cy + (radius + RACE_CHART.axisLabelGap) * Math.sin(angle);
       const cosA = Math.cos(angle);
       const sinA = Math.sin(angle);
       ctx.font = "700 13px -apple-system, BlinkMacSystemFont, sans-serif";
@@ -400,7 +505,7 @@ window.RacePage = (() => {
       points.forEach(({ x, y, score }) => {
         if (score === 0) return;
         ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.arc(x, y, RACE_CHART.vertexRadius, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
         ctx.lineWidth = 2.5;
@@ -410,12 +515,15 @@ window.RacePage = (() => {
     });
 
     // Legend
-    const legendItemW = Math.max(180, Math.floor((w - sidePad * 2) / legendCols));
+    const legendItemW = Math.max(
+      RACE_CHART.legendMinItem,
+      Math.floor((w - sidePad * 2) / legendCols),
+    );
     const legendStartX = Math.max(
-      24,
+      RACE_CHART.legendLeft,
       Math.floor((w - legendItemW * legendCols) / 2),
     );
-    const legendStartY = h - legendAreaH - 18;
+    const legendStartY = h - legendAreaH - RACE_CHART.legendBottom;
     data.forEach((d, di) => {
       const color = BAR_PAL[(d.alg_idx ?? di) % BAR_PAL.length];
       const col = di % legendCols;
@@ -452,12 +560,12 @@ window.RacePage = (() => {
     ctx.fillStyle = "#8E8E93";
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText(title.toUpperCase(), 16, 21);
+    ctx.fillText(title.toUpperCase(), RACE_CHART.titleX, RACE_CHART.titleY);
 
-    const ml = 116;
-    const mr = 76;
-    const mt = 32;
-    const mb = 10;
+    const ml = RACE_CHART.barLeft;
+    const mr = RACE_CHART.barRight;
+    const mt = RACE_CHART.barTop;
+    const mb = RACE_CHART.barBottom;
     const cw = w - ml - mr;
     const ch = h - mt - mb;
     const n = data.length;
@@ -466,8 +574,11 @@ window.RacePage = (() => {
     );
     const mx = Math.max(...vals) || 1;
 
-    const gap = 8;
-    const barH = Math.min(24, Math.max(14, (ch - (n - 1) * gap) / n));
+    const gap = RACE_CHART.barGap;
+    const barH = Math.min(
+      RACE_CHART.barMaxH,
+      Math.max(RACE_CHART.barMinH, (ch - (n - 1) * gap) / n),
+    );
     const startY = mt + (ch - (n * barH + (n - 1) * gap)) / 2;
 
     for (let i = 0; i < n; i++) {
@@ -478,13 +589,13 @@ window.RacePage = (() => {
       // background track
       ctx.fillStyle = "#ECEEF5";
       ctx.beginPath();
-      ctx.roundRect(ml, by, cw, barH, 5);
+      ctx.roundRect(ml, by, cw, barH, RACE_CHART.barRadius);
       ctx.fill();
 
       // colored bar
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.roundRect(ml, by, bw, barH, 5);
+      ctx.roundRect(ml, by, bw, barH, RACE_CHART.barRadius);
       ctx.fill();
 
       // name label
@@ -513,7 +624,7 @@ window.RacePage = (() => {
       if (opts.badge) {
         const badgeText = opts.badge(vals[i], vals);
         if (badgeText) {
-          const badgePad = 4;
+          const badgePad = RACE_CHART.valueBadgePad;
           ctx.font = "700 9px -apple-system, BlinkMacSystemFont, sans-serif";
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
@@ -524,14 +635,14 @@ window.RacePage = (() => {
             return m.width;
           })();
           const badgeW = ctx.measureText(badgeText).width + badgePad * 2;
-          const badgeH = 13;
+          const badgeH = RACE_CHART.valueBadgeH;
           const badgeX = ml + bw + 8 + valueLabelW + 6;
           const badgeY = by + barH / 2 - badgeH / 2;
-          ctx.fillStyle = "#34C75920";
+          ctx.fillStyle = raceBadgeFill(RACE_BADGE.success);
           ctx.beginPath();
-          ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 4);
+          ctx.roundRect(badgeX, badgeY, badgeW, badgeH, RACE_CHART.valueBadgeRadius);
           ctx.fill();
-          ctx.fillStyle = "#34C759";
+          ctx.fillStyle = RACE_BADGE.success;
           ctx.fillText(badgeText, badgeX + badgePad, by + barH / 2);
         }
       }
@@ -551,21 +662,17 @@ window.RacePage = (() => {
       return;
     }
 
-    const cols = n <= 2 ? n : n <= 4 ? 2 : n <= 6 ? 3 : 4;
-    const rows = Math.ceil(n / cols);
+    const contentEl = $("content-race");
+    const gridCols = raceGridCols();
+    const { cols, sectionH, canvasH } = racePanelSizing(
+      n,
+      Math.max(320, contentEl.clientHeight - 6),
+      Boolean(race.results && race.results.length),
+    );
     container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-    const contentEl = $("content-race");
-    const viewportH = Math.max(320, contentEl.clientHeight - 6);
-    const gapTotal = (rows - 1) * 10;
-    const panelsSectionH = viewportH;
-    container.style.height = `${panelsSectionH}px`;
+    container.style.height = `${sectionH}px`;
     container.style.flexShrink = "0";
-    const panelH = Math.max(
-      120,
-      Math.floor((panelsSectionH - gapTotal) / rows),
-    );
-    const canvasH = panelH - 24;
 
     const key = order.join(",");
     if (key === racePanelOrder.join(",")) {
@@ -580,19 +687,10 @@ window.RacePage = (() => {
             idx,
             runnerData.grid,
             runnerData.path,
-            raceGridCols(),
+            gridCols,
           );
         const badge = panel.querySelector(".panel-badge");
-        if (badge && runnerData && runnerData.done && runnerData.stats) {
-          if (runnerData.stats.found) {
-            badge.textContent = `Path: ${runnerData.stats.path}  |  ${(runnerData.stats.time * 1000).toFixed(2)} ms`;
-            badge.style.background = "#34C759";
-          } else {
-            badge.textContent = "No path found";
-            badge.style.background = "#FF3B30";
-          }
-          badge.style.display = "block";
-        }
+        if (badge) applyRaceBadge(badge, runnerData);
       });
       return;
     }
@@ -629,20 +727,10 @@ window.RacePage = (() => {
         idx,
         runnerData.grid,
         runnerData.path,
-        raceGridCols(),
+        gridCols,
       );
       drawMiniMaze(canvas, runnerData, idx);
-
-      if (runnerData.done && runnerData.stats) {
-        if (runnerData.stats.found) {
-          badge.textContent = `Path: ${runnerData.stats.path}  |  ${(runnerData.stats.time * 1000).toFixed(2)} ms`;
-          badge.style.background = "#34C759";
-        } else {
-          badge.textContent = "No path found";
-          badge.style.background = "#FF3B30";
-        }
-        badge.style.display = "block";
-      }
+      applyRaceBadge(badge, runnerData);
     });
   }
 
