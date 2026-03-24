@@ -292,7 +292,9 @@ window.VisualizePage = (() => {
       if (state.viz.grid)
         updateAnimations(state.viz.grid, state.viz.rows, state.viz.cols);
       updateUI();
-    } catch (_) {}
+    } catch (error) {
+      console.warn("[visualize] poll failed", error);
+    }
   }
 
   function render() {
@@ -387,8 +389,8 @@ window.VisualizePage = (() => {
     ["inp-rows", "inp-cols"].forEach((id) => {
       $(id).addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
-          const rows = +$("inp-rows").value || vizState()?.rows || 28;
-          const cols = +$("inp-cols").value || vizState()?.cols || 40;
+          const rows = +$("inp-rows").value || vizState()?.rows || 22;
+          const cols = +$("inp-cols").value || vizState()?.cols || 30;
           act({ action: "set_grid", rows, cols });
           e.target.blur();
         }

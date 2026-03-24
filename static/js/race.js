@@ -95,11 +95,11 @@ window.RacePage = (() => {
   }
 
   function raceGridRows() {
-    return raceState()?.rows || 28;
+    return raceState()?.rows || 22;
   }
 
   function raceGridCols() {
-    return raceState()?.cols || 40;
+    return raceState()?.cols || 30;
   }
 
   function raceSpeed() {
@@ -796,7 +796,9 @@ window.RacePage = (() => {
       state.race = await (await fetch("/api/race")).json();
       updateUI();
       if (!raceRafId) raceRafId = requestAnimationFrame(renderRace);
-    } catch (_) {}
+    } catch (error) {
+      console.warn("[race] poll failed", error);
+    }
   }
 
   function bindUI() {

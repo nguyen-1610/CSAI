@@ -47,7 +47,9 @@ const App = (() => {
         );
       }
       return body;
-    } catch (_) {}
+    } catch (error) {
+      console.warn('[api/action] request failed', data?.action || 'unknown', error);
+    }
   }
 
   function readSavedTab() {

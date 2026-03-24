@@ -1,5 +1,6 @@
 """Run orchestration for visualize mode and race mode."""
 
+import logging
 import threading
 import time
 
@@ -14,6 +15,8 @@ from core.constants import (
 )
 from core.grid import build_grid_array
 from core.state import state
+
+logger = logging.getLogger(__name__)
 
 
 def _do_cancel_race():
@@ -370,7 +373,7 @@ def _algo_loop():
                     state.running = False
                     break
                 except Exception as exc:
-                    print(f"[Algo error] {exc}")
+                    logger.exception("Visualize algorithm loop failed: %s", exc)
                     state.running = False
                     break
         time.sleep(RUN_LOOP_INTERVAL_SECONDS)
@@ -453,7 +456,7 @@ def _race_loop():
                         state.clear_search()
                         snap[idx] = (set(runner["vis"]), set())
                     except Exception as exc:
-                        print(f"[Race error] {ALG_NAMES[idx]}: {exc}")
+                        logger.exception("Race runner failed for %s: %s", ALG_NAMES[idx], exc)
                         runner["done"] = True
                         runner["stats"] = state.new_stats()
                         state.clear_search()
