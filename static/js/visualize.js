@@ -357,13 +357,13 @@ window.VisualizePage = (() => {
     });
 
     $("btn-spd-down").addEventListener("click", () => {
-      const v = Math.max(1, (vizState()?.speed || 20) - 1);
+      const v = Math.max(uiConfig.speedMin, (vizState()?.speed || 20) - 1);
       $("speed-val").textContent = v;
       $("speed-slider").value = v;
       act({ action: "speed", value: v });
     });
     $("btn-spd-up").addEventListener("click", () => {
-      const v = Math.min(400, (vizState()?.speed || 20) + 1);
+      const v = Math.min(uiConfig.speedMax, (vizState()?.speed || 20) + 1);
       $("speed-val").textContent = v;
       $("speed-slider").value = v;
       act({ action: "speed", value: v });

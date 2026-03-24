@@ -8,7 +8,7 @@ DEFAULT_SPEED = 20
 
 DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-MAX_SPEED = 400
+MAX_SPEED = 999
 MIN_R, MAX_R = 5, 50
 MIN_C, MAX_C = 5, 80
 

@@ -819,13 +819,13 @@ window.RacePage = (() => {
     );
 
     $("race-btn-spd-dn").addEventListener("click", () => {
-      const v = Math.max(1, raceSpeed() - 1);
+      const v = Math.max(uiConfig.speedMin, raceSpeed() - 1);
       $("race-speed-val").textContent = v;
       $("race-speed-slider").value = v;
       act({ action: "speed", value: v });
     });
     $("race-btn-spd-up").addEventListener("click", () => {
-      const v = Math.min(400, raceSpeed() + 1);
+      const v = Math.min(uiConfig.speedMax, raceSpeed() + 1);
       $("race-speed-val").textContent = v;
       $("race-speed-slider").value = v;
       act({ action: "speed", value: v });

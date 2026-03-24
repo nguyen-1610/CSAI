@@ -6,6 +6,8 @@ const App = (() => {
     pollIntervalMs: 40,
     pathAnimationStepDelayMs: 18,
     pathAnimationDurationMs: 320,
+    speedMin: 1,
+    speedMax: 999,
   };
 
   const state = {
