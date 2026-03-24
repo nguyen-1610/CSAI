@@ -97,12 +97,73 @@
 }
 .chart {
   width: 100%;
-  height: 170px;
+  height: 240px;
   background: #FAFBFF;
   border-radius: 14px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border);
 }
+
+/* Comparison Summary table */
+#race-comparison-table {
+  grid-column: 1 / -1;
+  background: #FAFBFF;
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  padding: 16px 20px 12px;
+  overflow-x: auto;
+}
+.cmp-header {
+  font: 700 11px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #8E8E93;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 13px -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.cmp-table th {
+  text-align: left;
+  padding: 6px 14px;
+  font: 600 12px -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #8E8E93;
+  border-bottom: 1.5px solid #E5E5EA;
+  white-space: nowrap;
+}
+.cmp-table td {
+  padding: 7px 14px;
+  color: #3A3A3C;
+  border-bottom: 1px solid #F2F2F7;
+  white-space: nowrap;
+}
+.cmp-table tbody tr:last-child td { border-bottom: none; }
+.cmp-table tbody tr:hover td { background: #F7F8FC; }
+.cmp-alg-cell {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cmp-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+td.cmp-best { background: #EBF8EE; color: #1A7A35; font-weight: 700; }
+td.cmp-optimal-yes { color: #34C759; font-weight: 700; }
+td.cmp-optimal-no  { color: #FF3B30; font-weight: 600; }
+td.cmp-optimal-na  { color: #AEAEB2; }
+.cmp-footnote {
+  margin-top: 10px;
+  font: 11px -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #8E8E93;
+}
+.cmp-green { color: #34C759; font-weight: 600; }
 
 .chart.chart-radar {
   grid-column: 1 / -1;

@@ -225,6 +225,85 @@ window.RacePage = (() => {
     return panel;
   }
 
+  function buildComparisonTable(results) {
+    const el = $("race-comparison-table");
+    if (!el || !results || !results.length) return;
+
+    const foundResults = results.filter(d => d.found);
+    const minCost = foundResults.length ? Math.min(...foundResults.map(d => d.cost)) : null;
+
+    function isBestVal(vals, v) {
+      if (!(v > 0)) return false;
+      const pos = vals.filter(x => x > 0);
+      if (!pos.length) return false;
+      const best = Math.min(...pos);
+      const max = Math.max(...pos);
+      if (Math.abs(max - best) <= Math.max(0.001, best * 0.02)) return false;
+      return Math.abs(v - best) <= Math.max(0.001, best * 0.02);
+    }
+
+    function isOptimal(d) {
+      if (!d.found || minCost === null) return false;
+      return Math.abs(d.cost - minCost) <= Math.max(0.001, Math.abs(minCost) * 0.02);
+    }
+
+    function fmtTime(ms) {
+      return ms < 1 ? ms.toFixed(2) + " ms" : ms.toFixed(1) + " ms";
+    }
+
+    const foundNodes = foundResults.map(d => d.nodes);
+    const foundPath  = foundResults.map(d => d.path);
+    const foundCost  = foundResults.map(d => d.cost);
+    const foundTime  = foundResults.map(d => d.time * 1000);
+    const foundIter  = foundResults.map(d => d.iterations);
+    const foundMem   = foundResults.map(d => d.peak_memory);
+
+    const rows = results.map((d, i) => {
+      const color = BAR_PAL[(d.alg_idx ?? i) % BAR_PAL.length];
+      const dot = `<span class="cmp-dot" style="background:${color}"></span>`;
+
+      if (!d.found) {
+        return `<tr>
+          <td class="cmp-alg-cell">${dot}${shortAlgName(d.name)}</td>
+          <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+          <td class="cmp-optimal-na">—</td>
+        </tr>`;
+      }
+
+      const timeMs = d.time * 1000;
+      const optimal = isOptimal(d);
+
+      function cell(val, best) {
+        return `<td${best ? ' class="cmp-best"' : ""}>${val}</td>`;
+      }
+
+      return `<tr>
+        <td class="cmp-alg-cell">${dot}${shortAlgName(d.name)}</td>
+        ${cell(Math.round(d.nodes).toLocaleString(), isBestVal(foundNodes, d.nodes))}
+        ${cell(d.path, isBestVal(foundPath, d.path))}
+        ${cell(d.cost, isBestVal(foundCost, d.cost))}
+        ${cell(fmtTime(timeMs), isBestVal(foundTime, timeMs))}
+        ${cell(d.iterations, isBestVal(foundIter, d.iterations))}
+        ${cell(d.peak_memory > 0 ? Math.round(d.peak_memory).toLocaleString() : "—", isBestVal(foundMem, d.peak_memory))}
+        <td class="${optimal ? "cmp-optimal-yes" : "cmp-optimal-no"}">${optimal ? "✓ Yes" : "✗ No"}</td>
+      </tr>`;
+    });
+
+    el.innerHTML = `
+      <div class="cmp-header">COMPARISON SUMMARY</div>
+      <div class="cmp-scroll">
+        <table class="cmp-table">
+          <thead><tr>
+            <th>Algorithm</th><th>Nodes</th><th>Path Len</th><th>Cost</th>
+            <th>Time</th><th>Iterations</th><th>Peak Memory</th><th>Optimal?</th>
+          </tr></thead>
+          <tbody>${rows.join("")}</tbody>
+        </table>
+      </div>
+      <div class="cmp-footnote">Optimal = found minimum cost in this race &nbsp;|&nbsp; <span class="cmp-green">Green</span> = best value</div>
+    `;
+  }
+
   function drawRaceCharts(results) {
     const charts = [
       {
@@ -271,6 +350,7 @@ window.RacePage = (() => {
       },
     ];
 
+    buildComparisonTable(results);
     charts.forEach(({ id, key, title, opts }) => {
       drawChart($(id), results, key, title, opts);
     });
