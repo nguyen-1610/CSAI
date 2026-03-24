@@ -3,65 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Maze Pathfinding Visualizer</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=20260322a" />
-    <link rel="stylesheet" href="/static/css/visualize.css?v=20260322a" />
-    <link rel="stylesheet" href="/static/css/race.css?v=20260322a" />
+    <title>Maze Search Laboratory</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=20260324n" />
+    <link rel="stylesheet" href="/static/css/visualize.css?v=20260324n" />
+    <link rel="stylesheet" href="/static/css/race.css?v=20260324n" />
   </head>
-  <body>
+  <body data-tab="visualize">
     <header class="header">
-      <!-- Tab Bar -->
-      <nav class="tab-bar">
-        <button class="tab active" data-tab="visualize">Visualize</button>
-        <button class="tab" data-tab="race">Race</button>
-      </nav>
+      <div class="topbar">
+        <div class="brand-block">
+          <p class="brand-kicker">Computational Search Laboratory</p>
+          <h1>Maze Pathfinding Studio</h1>
+          <p class="brand-copy">
+            Formal analysis environment for single-run tracing and
+            multi-algorithm comparison on grid mazes.
+          </p>
+        </div>
 
-      <!-- ── Visualize Ribbon ──────────────────────────────── -->
+        <nav class="tab-bar" aria-label="Application mode">
+          <button class="tab active" data-tab="visualize">
+            <span class="tab-kicker">Mode A</span>
+            <span class="tab-title">Visualize</span>
+            <span class="tab-copy">Trace one solver in detail</span>
+          </button>
+          <button class="tab" data-tab="race">
+            <span class="tab-kicker">Mode B</span>
+            <span class="tab-title">Race</span>
+            <span class="tab-copy">Compare multiple solvers</span>
+          </button>
+        </nav>
+      </div>
+
       <div class="ribbon" id="ribbon-viz">
-        <!-- Speed + Algorithm -->
         <div class="rib-group rib-group-stack">
-          <div class="rib-stack">
-            <div class="stack-unit stack-unit-speed">
-              <div class="rib-body col rib-speed-body">
-                <div class="speed-header">
-                  Speed &mdash; <span id="speed-val">18</span>
-                </div>
-                <div class="speed-row">
-                  <button class="btn btn-icon" id="btn-spd-down">
-                    &minus;
-                  </button>
-                  <input
-                    type="range"
-                    class="speed-slider"
-                    id="speed-slider"
-                    min="1"
-                    max="999"
-                    value="20"
-                  />
-                  <button class="btn btn-icon" id="btn-spd-up">+</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="stack-unit stack-unit-algo">
-              <div class="rib-body">
+          <div class="rib-body">
+            <div class="rib-stack">
+              <div class="stack-unit stack-unit-algo">
                 <div class="dropdown" id="algo-dd">
                   <button class="dd-btn" id="algo-btn">
-                    <span id="algo-name"></span>
+                    <span class="dd-copy">
+                      <span class="dd-kicker">Selected Algorithm</span>
+                      <span id="algo-name"></span>
+                    </span>
                     <span class="dd-arrow">&#9662;</span>
                   </button>
                   <div class="dd-list hidden" id="algo-list"></div>
                 </div>
               </div>
-              <div class="rib-label">Algorithm</div>
+
+              <div class="stack-unit stack-unit-speed">
+                <div class="rib-body col rib-speed-body">
+                  <div class="speed-header">
+                    Execution Speed <span id="speed-val">18</span>
+                  </div>
+                  <div class="speed-row">
+                    <button class="btn btn-icon" id="btn-spd-down">
+                      &minus;
+                    </button>
+                    <input
+                      type="range"
+                      class="speed-slider"
+                      id="speed-slider"
+                      min="1"
+                      max="999"
+                      value="20"
+                    />
+                    <button class="btn btn-icon" id="btn-spd-up">+</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+          <div class="rib-label">Configuration</div>
         </div>
-        <div class="rib-sep"></div>
 
-        <!-- Run / Step -->
         <div class="rib-group rib-group-run">
-          <div class="rib-body col" style="align-items: center; gap: 4px">
+          <div class="rib-body col">
             <div class="step-row">
               <button
                 class="btn btn-icon btn-step-nav"
@@ -81,15 +98,16 @@
                 &#9654;
               </button>
             </div>
-            <button class="btn btn-sm btn-cancel hidden" id="btn-cancel">
-              &#9724; Cancel
-            </button>
+            <div class="run-support">
+              <button class="btn btn-sm btn-cancel hidden" id="btn-cancel">
+                &#9724; Cancel
+              </button>
+              <span class="run-hint">Space to run or pause</span>
+            </div>
           </div>
-          <div class="rib-label">Run</div>
+          <div class="rib-label">Execution</div>
         </div>
-        <div class="rib-sep"></div>
 
-        <!-- Edit -->
         <div class="rib-group rib-group-edit">
           <div class="rib-body edit-grid">
             <button class="btn btn-sm" id="btn-maze">Basic Maze</button>
@@ -101,11 +119,9 @@
               Reset All
             </button>
           </div>
-          <div class="rib-label">Edit</div>
+          <div class="rib-label">Environment</div>
         </div>
-        <div class="rib-sep"></div>
 
-        <!-- Grid -->
         <div class="rib-group rib-group-grid">
           <div class="rib-body col">
             <div class="grid-row">
@@ -131,19 +147,26 @@
               <button class="btn btn-icon" id="btn-col-up">+</button>
             </div>
           </div>
-          <div class="rib-label">Grid</div>
+          <div class="rib-label">Grid Geometry</div>
         </div>
       </div>
 
-      <!-- ── Race Ribbon ───────────────────────────────────── -->
       <div class="ribbon hidden" id="ribbon-race">
         <div class="rib-group rib-wide">
-          <div class="rib-body row" id="race-algos"></div>
-          <div class="rib-label">Algorithms</div>
+          <div class="rib-body col">
+            <div class="race-ribbon-head">
+              <span class="race-ribbon-copy">Select at least two solvers</span>
+              <span class="race-ribbon-status" id="race-selection-inline">
+                0 selected
+              </span>
+            </div>
+            <div class="rib-body row" id="race-algos"></div>
+          </div>
+          <div class="rib-label">Algorithm Set</div>
         </div>
-        <div class="rib-sep"></div>
+
         <div class="rib-group">
-          <div class="rib-body col" style="align-items: center; gap: 4px">
+          <div class="rib-body col">
             <div class="step-row">
               <button
                 class="btn btn-icon btn-step-nav"
@@ -163,20 +186,25 @@
                 &#9654;
               </button>
             </div>
-            <button class="btn btn-sm btn-cancel hidden" id="race-btn-cancel">
-              &#9724; Cancel
-            </button>
+            <div class="run-support">
+              <button class="btn btn-sm btn-cancel hidden" id="race-btn-cancel">
+                &#9724; Cancel
+              </button>
+              <span class="run-hint">Shared speed applies to all runners</span>
+            </div>
           </div>
-          <div class="rib-label">Race</div>
+          <div class="rib-label">Execution</div>
         </div>
-        <div class="rib-sep"></div>
+
         <div class="rib-group">
-          <div class="rib-body col" style="min-width: 190px">
+          <div class="rib-body col">
             <div class="speed-header">
-              Speed &mdash; <span id="race-speed-val">20</span>
+              Race Speed <span id="race-speed-val">20</span>
             </div>
             <div class="speed-row">
-              <button class="btn btn-icon" id="race-btn-spd-dn">&minus;</button>
+              <button class="btn btn-icon" id="race-btn-spd-dn">
+                &minus;
+              </button>
               <input
                 type="range"
                 class="speed-slider"
@@ -188,145 +216,237 @@
               <button class="btn btn-icon" id="race-btn-spd-up">+</button>
             </div>
           </div>
-          <div class="rib-label">Speed</div>
+          <div class="rib-label">Tempo</div>
         </div>
       </div>
     </header>
 
-    <!-- ── Main content ─────────────────────────────────────── -->
     <main class="main">
-      <!-- Visualize -->
       <div class="content" id="content-viz">
-        <div class="viz-workspace">
-          <div class="grid-area" id="grid-area">
-            <canvas id="grid-canvas"></canvas>
+        <section class="viz-page">
+          <div class="viz-shell">
+            <div class="viz-workspace">
+              <section class="canvas-card">
+                <div class="canvas-card-head">
+                  <div>
+                    <p class="panel-kicker">Grid Canvas</p>
+                    <h3>Search Surface</h3>
+                  </div>
+                  <div class="canvas-card-info">
+                    <div class="info-chip">
+                      <span class="info-chip-label">State</span>
+                      <strong id="viz-stage-chip">Idle</strong>
+                    </div>
+                    <div class="info-chip">
+                      <span class="info-chip-label">Step Pointer</span>
+                      <strong id="viz-step-chip">0</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid-area" id="grid-area">
+                  <canvas id="grid-canvas"></canvas>
+                </div>
+
+                <div class="canvas-foot">
+                  <span>Left drag adds walls.</span>
+                  <span>Right drag clears.</span>
+                  <span>Shift or checkpoint mode places a checkpoint.</span>
+                  <span>Drag start, end, or checkpoint nodes directly.</span>
+                </div>
+              </section>
+            </div>
+
+            <aside class="viz-sidebar" id="viz-sidebar">
+              <section class="side-panel side-panel-stats">
+                <div class="side-title">Statistics</div>
+                <div class="stats-grid">
+                  <div class="stat">
+                    <div class="stat-lbl">Nodes</div>
+                    <div class="stat-val" id="st-nodes">0</div>
+                  </div>
+                  <div class="stat">
+                    <div class="stat-lbl">Path</div>
+                    <div class="stat-val" id="st-path">0</div>
+                  </div>
+                  <div class="stat">
+                    <div class="stat-lbl">Cost</div>
+                    <div class="stat-val" id="st-cost">0</div>
+                  </div>
+                  <div class="stat">
+                    <div class="stat-lbl">Time</div>
+                    <div class="stat-val" id="st-time">0.0 ms</div>
+                  </div>
+                </div>
+                <div class="stat-status" id="st-status">Ready</div>
+              </section>
+
+              <section class="side-panel side-panel-summary">
+                <div class="side-title">Session</div>
+                <div class="summary-list">
+                  <div class="summary-row">
+                    <span>Algorithm</span>
+                    <strong id="viz-summary-alg">-</strong>
+                  </div>
+                  <div class="summary-row">
+                    <span>Grid</span>
+                    <strong id="viz-summary-grid">-</strong>
+                  </div>
+                  <div class="summary-row">
+                    <span>Route</span>
+                    <strong id="viz-summary-mode">-</strong>
+                  </div>
+                  <div class="summary-row">
+                    <span>Checkpoint</span>
+                    <strong id="viz-summary-checkpoint">-</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="side-panel side-panel-options">
+                <div class="side-title">Editing Protocol</div>
+                <div class="options-col">
+                  <button class="btn btn-sm btn-cp-toggle" id="btn-cp-toggle">
+                    <span class="cp-icon"></span
+                    ><span id="cp-label">Checkpoint</span>
+                  </button>
+
+                  <div class="terrain-row">
+                    <button
+                      class="btn btn-sm btn-terrain"
+                      id="btn-t-grass"
+                      data-terrain="10"
+                      title="Grass - cost x2"
+                    >
+                      <span class="t-dot t-dot-grass"></span>Grass x2
+                    </button>
+                    <button
+                      class="btn btn-sm btn-terrain"
+                      id="btn-t-swamp"
+                      data-terrain="9"
+                      title="Swamp - cost x5"
+                    >
+                      <span class="t-dot t-dot-swamp"></span>Swamp x5
+                    </button>
+                    <button
+                      class="btn btn-sm btn-terrain"
+                      id="btn-t-water"
+                      data-terrain="8"
+                      title="Water - cost x10"
+                    >
+                      <span class="t-dot t-dot-water"></span>Water x10
+                    </button>
+                  </div>
+
+                  <div class="option-note">
+                    <span class="option-note-kicker">Canvas Notes</span>
+                    <p>
+                      Weighted brushes recolor non-wall cells only. While an
+                      algorithm is running, direct edits remain locked until the
+                      session is paused or cancelled.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="side-panel side-panel-legend">
+                <div class="side-title">Legend</div>
+                <div class="grid-legend">
+                  <div class="gl-item">
+                    <span class="gl-dot gl-start"></span>Start
+                  </div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-end"></span>End
+                  </div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-checkpoint"></span>Checkpoint
+                  </div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-wall"></span>Wall
+                  </div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-visited"></span>Visited
+                  </div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-frontier"></span>Frontier
+                  </div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-path"></span>Path
+                  </div>
+                  <div class="gl-sep"></div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-grass"></span>Grass x2
+                  </div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-swamp"></span>Swamp x5
+                  </div>
+                  <div class="gl-item">
+                    <span class="gl-dot gl-water"></span>Water x10
+                  </div>
+                </div>
+              </section>
+            </aside>
           </div>
-        </div>
-        <aside class="viz-sidebar" id="viz-sidebar">
-          <section class="side-panel side-panel-stats">
-            <div class="side-title">Statistics</div>
-            <div class="stats-grid">
-              <div class="stat">
-                <div class="stat-lbl">Nodes</div>
-                <div class="stat-val" id="st-nodes">0</div>
-              </div>
-              <div class="stat">
-                <div class="stat-lbl">Path</div>
-                <div class="stat-val" id="st-path">0</div>
-              </div>
-              <div class="stat">
-                <div class="stat-lbl">Cost</div>
-                <div class="stat-val" id="st-cost">0</div>
-              </div>
-              <div class="stat">
-                <div class="stat-lbl">Time</div>
-                <div class="stat-val" id="st-time">0.0 ms</div>
-              </div>
-            </div>
-            <div class="stat-status" id="st-status"></div>
-          </section>
-
-          <section class="side-panel side-panel-options">
-            <div class="side-title">Options</div>
-            <div class="options-col">
-              <button class="btn btn-sm btn-cp-toggle" id="btn-cp-toggle">
-                <span class="cp-icon"></span
-                ><span id="cp-label">Checkpoint</span>
-              </button>
-              <div class="terrain-row">
-                <button
-                  class="btn btn-sm btn-terrain"
-                  id="btn-t-grass"
-                  data-terrain="10"
-                  title="Grass — cost ×2"
-                >
-                  <span class="t-dot" style="background: #8bc34a"></span>Grass
-                  ×2
-                </button>
-                <button
-                  class="btn btn-sm btn-terrain"
-                  id="btn-t-swamp"
-                  data-terrain="9"
-                  title="Swamp — cost ×5"
-                >
-                  <span class="t-dot" style="background: #8b5e3c"></span>Swamp
-                  ×5
-                </button>
-                <button
-                  class="btn btn-sm btn-terrain"
-                  id="btn-t-water"
-                  data-terrain="8"
-                  title="Water — cost ×10"
-                >
-                  <span class="t-dot" style="background: #1b6ca8"></span>Water
-                  ×10
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <section class="side-panel side-panel-legend">
-            <div class="side-title">Legend</div>
-            <div class="grid-legend">
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #34c759"></span>Start
-              </div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #ff3b30"></span>End
-              </div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #ffd60a"></span
-                >Checkpoint
-              </div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #1c1c1e"></span>Wall
-              </div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #007aff"></span>Visited
-              </div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #5856d6"></span>Frontier
-              </div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #ff9500"></span>Path
-              </div>
-              <div class="gl-sep"></div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #8bc34a"></span>Grass ×2
-              </div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #8b5e3c"></span>Swamp ×5
-              </div>
-              <div class="gl-item">
-                <span class="gl-dot" style="background: #1b6ca8"></span>Water
-                ×10
-              </div>
-            </div>
-          </section>
-        </aside>
+        </section>
       </div>
 
-      <!-- Race -->
       <div class="content hidden" id="content-race">
-        <div class="race-panels" id="race-panels"></div>
-        <div class="race-charts hidden" id="race-charts">
-          <div id="race-comparison-table"></div>
-          <canvas class="chart" id="chart-nodes"></canvas>
-          <canvas class="chart" id="chart-path"></canvas>
-          <canvas class="chart" id="chart-cost"></canvas>
-          <canvas class="chart" id="chart-time"></canvas>
-          <canvas class="chart" id="chart-iterations"></canvas>
-          <canvas class="chart" id="chart-memory"></canvas>
-          <canvas class="chart chart-radar" id="chart-radar"></canvas>
-        </div>
+        <section class="race-page">
+          <section class="race-panel-stage">
+            <div class="section-head">
+              <div>
+                <p class="panel-kicker">Live Comparison</p>
+                <h3>Runner Panels</h3>
+                <div class="race-stage-meta">
+                  <span id="race-selected-count">0 algorithms</span>
+                  <span id="race-grid-summary">-</span>
+                  <span id="race-speed-summary">-</span>
+                  <span id="race-status-summary">Idle</span>
+                </div>
+              </div>
+              <div class="section-note" id="race-selection-note">
+                Select at least two algorithms to begin a race.
+              </div>
+            </div>
+
+            <div class="race-panels" id="race-panels"></div>
+
+            <div class="race-empty-state" id="race-empty-state">
+              <p class="race-empty-kicker">Awaiting Selection</p>
+              <h3>Runner panels appear here after algorithms are selected.</h3>
+              <p>
+                Use the algorithm set above to assemble a benchmark cohort, then
+                start the race.
+              </p>
+            </div>
+          </section>
+
+          <div class="race-charts hidden" id="race-charts">
+            <div id="race-comparison-table"></div>
+            <canvas class="chart" id="chart-nodes"></canvas>
+            <canvas class="chart" id="chart-path"></canvas>
+            <canvas class="chart" id="chart-cost"></canvas>
+            <canvas class="chart" id="chart-time"></canvas>
+            <canvas class="chart" id="chart-iterations"></canvas>
+            <canvas class="chart" id="chart-memory"></canvas>
+            <div class="race-focus-row">
+              <canvas class="chart chart-radar" id="chart-radar"></canvas>
+              <canvas class="chart chart-frontier" id="chart-frontier"></canvas>
+            </div>
+            <div class="race-insight-row">
+              <canvas class="chart chart-tradeoff" id="chart-tradeoff"></canvas>
+              <canvas class="chart chart-heatmap" id="chart-heatmap"></canvas>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
 
     <script>
       const ALG_NAMES = {{ algo_names | tojson }};
     </script>
-    <script src="/static/js/app.js?v=20260322a"></script>
-    <script src="/static/js/visualize.js?v=20260322a"></script>
-    <script src="/static/js/race.js?v=20260322a"></script>
+    <script src="/static/js/app.js?v=20260324n"></script>
+    <script src="/static/js/visualize.js?v=20260324n"></script>
+    <script src="/static/js/race.js?v=20260324n"></script>
   </body>
 </html>

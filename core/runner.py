@@ -448,6 +448,7 @@ def _race_loop():
                         vis, front = next(runner["gen"])
                         runner["vis"] = vis
                         runner["front"] = _copy_front(front)
+                        runner["path"] = list(state.path_cells or [])
                         snap[idx] = (set(vis), set(runner["front"]))
                     except StopIteration:
                         runner["done"] = True

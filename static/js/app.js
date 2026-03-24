@@ -4,8 +4,8 @@ const App = (() => {
   const TAB_STORAGE_KEY = "maze_active_tab";
   const uiConfig = {
     pollIntervalMs: 40,
-    pathAnimationStepDelayMs: 18,
-    pathAnimationDurationMs: 320,
+    pathAnimationStepDelayMs: 12,
+    pathAnimationDurationMs: 420,
     speedMin: 1,
     speedMax: 999,
   };
@@ -74,6 +74,7 @@ const App = (() => {
     state.tab = tab;
     if (persist) persistTab(tab);
     act({ action: 'switch_tab', tab: tab });
+    document.body.dataset.tab = tab;
     document.querySelectorAll('.tab').forEach(button => {
       button.classList.toggle('active', button.dataset.tab === tab);
     });

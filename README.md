@@ -1,35 +1,49 @@
 # Maze Pathfinding Visualizer
 
-Web app Flask để visualize và so sánh các thuật toán tìm đường trên grid.
+Web app de visualize va so sanh cac thuat toan tim duong tren grid maze.
 
-Project này là app demo single-user:
+## Stack hien tai
 
-- ưu tiên code gọn, dễ demo, dễ sửa
-- không có multi-user hoặc per-session state
-- có thể deploy nhẹ lên Render nếu cần
+- Backend: Python + Flask
+- Frontend: HTML + CSS + JavaScript thuan
+- Render: Canvas API thuan
+- Giao tiep frontend/backend: polling `GET /api/state`, `GET /api/race`, va command `POST /api/action`
+- Khong dung React, Vite, Tailwind, shadcn/ui, Zustand, Recharts, FastAPI, hay websocket
 
-## Tính năng hiện tại
+Project nay la app demo single-user:
 
-- Tab `Visualize`
-  - chạy 1 thuật toán
-  - `Run`, `Pause`, `Continue`
-  - `Step`, `Step Back`
-  - kéo thả start, end, checkpoint
-  - `Basic Maze`, `Weighted Maze`
-  - weighted terrain với grass, swamp, water
-- Tab `Race`
-  - chọn nhiều thuật toán để chạy song song
-  - xem mini mazes
-  - xem chart so sánh nodes, path, cost, time, iterations, peak memory
+- uu tien code gon, de doc, de demo
+- runtime state duoc giu trong mot process
+- phu hop local demo va deploy nhe
 
-Lưu ý:
+## Tinh nang
 
-- Tree view đã bị loại bỏ khỏi code hiện tại.
-- Grid ở tab `Visualize` luôn auto-fit, không còn zoom/pan bằng chuột.
+### Tab `Visualize`
 
-## Cách chạy
+- chay 1 thuat toan
+- `Run`, `Pause`, `Continue`
+- `Step`, `Step Back`
+- keo tha start, end, checkpoint
+- `Basic Maze`, `Weighted Maze`
+- weighted terrain voi grass, swamp, water
+- grid auto-fit, khong co zoom/pan bang chuot
 
-Repo dùng virtual environment tại `.venv/`.
+### Tab `Race`
+
+- chon nhieu thuat toan de chay song song
+- mini maze cho tung runner
+- bang so sanh ket qua
+- cac chart so sanh nodes, path, cost, time, iterations, memory
+
+## Cai dat va chay
+
+Repo uu tien dung virtual environment tai `.venv/`. Thu muc nay la local dev env, khong duoc commit.
+
+Neu may ban chua co `.venv`, tao no truoc:
+
+```bash
+python -m venv .venv
+```
 
 ### macOS / Linux
 
@@ -37,13 +51,6 @@ Repo dùng virtual environment tại `.venv/`.
 source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
-```
-
-Hoặc không cần activate:
-
-```bash
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python app.py
 ```
 
 ### Windows PowerShell
@@ -54,23 +61,22 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Hoặc không cần activate:
+Neu khong muon activate shell, goi truc tiep interpreter trong `.venv`:
 
 ```powershell
-.venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\python app.py
 ```
 
-Mở `http://localhost:5000`.
+Mo `http://localhost:5000`.
 
-### Tắt auto-reload
+### Tat auto-reload
 
-```bash
-source .venv/bin/activate
-MAZE_DEBUG=0 python app.py
+```powershell
+$env:MAZE_DEBUG = "0"
+.venv\Scripts\python app.py
 ```
 
-PowerShell:
+Hoac neu dang activate shell:
 
 ```powershell
 $env:MAZE_DEBUG = "0"
@@ -82,12 +88,13 @@ python app.py
 ### Python
 
 ```bash
-source .venv/bin/activate
 python -m compileall app.py algorithms core
 python -m unittest discover -s tests -v
 ```
 
 ### JavaScript
+
+Frontend khong can build step. Neu may co Node.js, co the check syntax:
 
 ```bash
 node --check static/js/app.js
@@ -95,37 +102,31 @@ node --check static/js/visualize.js
 node --check static/js/race.js
 ```
 
-### Smoke test tay nên chạy
+### Smoke test tay
 
-- Tab `Visualize`
-  - chọn thuật toán và `Run`
-  - `Pause` / `Continue`
-  - `Step` / `Step Back`
-  - kéo thả start/end/checkpoint
-  - `Basic Maze` và `Weighted Maze`
-- Tab `Race`
-  - chọn ít nhất 2 thuật toán
-  - `Race`, `Pause`, `Continue`
-  - `Step`, `Step Back`
-  - xem panel và chart
+- `Visualize`
+- chon thuat toan va bam `Run`
+- `Pause` / `Continue`
+- `Step` / `Step Back`
+- keo tha start, end, checkpoint
+- tao `Basic Maze` va `Weighted Maze`
+- `Race`
+- chon it nhat 2 thuat toan
+- bam `Race`
+- xem runner panels, result matrix, va charts
 
-## API hiện tại
+## API hien tai
 
-Frontend hiện dùng đúng 3 endpoint:
+Frontend hien dung dung 3 endpoint:
 
 - `GET /api/state`
 - `GET /api/race`
 - `POST /api/action`
 
-Frontend dùng polling:
-
-- `visualize.js` poll `/api/state`
-- `race.js` poll `/api/race`
-- cả hai đang poll khoảng mỗi `40ms`
-
-## Tài liệu liên quan
+## Tai lieu lien quan
 
 - [Architecture.md](./Architecture.md)
 - [AGENTS.md](./AGENTS.md)
+- [CLAUDE.md](./CLAUDE.md)
 - [PRChecklist.md](./PRChecklist.md)
 - [RefactorPlan.md](./RefactorPlan.md)
