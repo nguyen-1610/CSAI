@@ -123,19 +123,19 @@ Notes: Added shared finalize helpers, normalized algorithm stats/came_from/finis
 
 Owner:
 Branch:
-Status: Implemented, manual smoke pending
-Notes: Reduced `race.js` duplication with shared sizing/badge helpers and preserved the tighter Race layout.
+Status: Done
+Notes: Reduced `race.js` duplication with shared sizing/badge helpers and preserved the tighter Race layout. Manual Race smoke test passed.
 
-- [ ] Sửa call signature của `updateRaceAnimations()`
-- [ ] Tách helper badge text
-- [ ] Tách helper badge color
-- [ ] Rà helper sizing cho panel/chart nếu cần
-- [ ] Giảm duplication trong `race.js`
-- [ ] Rà lại hard-coded value lớn trong chart/radar/panel
-- [ ] Giữ nguyên hành vi UI hiện tại sau refactor
-- [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Nếu cần, chạy `node --check static/js/race.js`
-- [ ] Smoke test tay `Race`
+- [X] Sửa call signature của `updateRaceAnimations()`
+- [X] Tách helper badge text
+- [X] Tách helper badge color
+- [X] Rà helper sizing cho panel/chart nếu cần
+- [X] Giảm duplication trong `race.js`
+- [X] Rà lại hard-coded value lớn trong chart/radar/panel
+- [X] Giữ nguyên hành vi UI hiện tại sau refactor
+- [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
+- [X] Nếu cần, chạy `node --check static/js/race.js`
+- [X] Smoke test tay `Race`
 
 ## PR 6: Dọn Logic Cũ Ở Visualize
 
@@ -171,7 +171,7 @@ Notes:
 - [ ] Ghi rõ đây là app demo single-user, deploy nhẹ lên Render nếu cần
 - [ ] Rà lại `README.md`
 - [ ] Rà lại `Architecture.md`
-- [ ] Rà lại `AGENTS.md`
+- [ ] Rà lại `AGENTS.md và CLAUDE.md`
 - [ ] Rà lại doc phụ khác nếu repo còn dùng
 
 ## PR 8: Dọn Dead Code, Duplication Và Magic Numbers

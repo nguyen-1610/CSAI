@@ -39,6 +39,14 @@ window.RacePage = (() => {
   const prevRaceGrids = new Map();
   const raceAnimCells = new Map();
   let raceRafId = null;
+  const PANEL_GAP = 10;
+  const PANEL_MIN_VIEWPORT_H = 320;
+  const PANEL_MIN_H = 120;
+  const PANEL_HEADER_H = 24;
+  const PANEL_BG = "#F2F2F7";
+  const CHART_BG = "#FAFBFF";
+  const BADGE_SUCCESS_BG = "#34C759";
+  const BADGE_FAILURE_BG = "#FF3B30";
 
   const { $, act, state } = window.App;
 
@@ -48,6 +56,28 @@ window.RacePage = (() => {
 
   function shortAlgName(name) {
     return ALG_SHORT[name] || name;
+  }
+
+  function colorForAlgo(algIdx, fallbackIdx = 0) {
+    return BAR_PAL[(algIdx ?? fallbackIdx) % BAR_PAL.length];
+  }
+
+  function getCanvasBox(canvas, { resizeAlways = false } = {}) {
+    const dpr = devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (!w || !h) return null;
+
+    const tw = Math.round(w * dpr);
+    const th = Math.round(h * dpr);
+    if (resizeAlways || canvas.width !== tw || canvas.height !== th) {
+      canvas.width = tw;
+      canvas.height = th;
+    }
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
   }
 
   function makeLowBadge(label, { avgFactor = 0.8 } = {}) {
@@ -76,7 +106,10 @@ window.RacePage = (() => {
     return raceState()?.speed || 20;
   }
 
-  function updateRaceAnimations(idx, grid, path, gridCols) {
+  function updateRaceAnimations(idx, runnerData, gridCols = raceGridCols()) {
+    if (!runnerData?.grid) return;
+
+    const { grid, path } = runnerData;
     const prev = prevRaceGrids.get(idx);
     if (!prev || prev.length !== grid.length) {
       prevRaceGrids.set(idx, grid.slice());
@@ -102,6 +135,142 @@ window.RacePage = (() => {
       }
     }
     prevRaceGrids.set(idx, grid.slice());
+  }
+
+  function getRunnerBadgeState(runnerData) {
+    if (!runnerData?.done || !runnerData.stats) return null;
+
+    if (runnerData.stats.found) {
+      return {
+        text: `Path: ${runnerData.stats.path}  |  ${(runnerData.stats.time * 1000).toFixed(2)} ms`,
+        background: BADGE_SUCCESS_BG,
+      };
+    }
+
+    return {
+      text: "No path found",
+      background: BADGE_FAILURE_BG,
+    };
+  }
+
+  function applyRunnerBadge(badge, runnerData) {
+    if (!badge) return;
+
+    const badgeState = getRunnerBadgeState(runnerData);
+    if (!badgeState) {
+      badge.textContent = "";
+      badge.style.background = "";
+      badge.style.display = "none";
+      return;
+    }
+
+    badge.textContent = badgeState.text;
+    badge.style.background = badgeState.background;
+    badge.style.display = "block";
+  }
+
+  function getRacePanelLayout(count, viewportHeight) {
+    const cols = count <= 2 ? count : count <= 4 ? 2 : count <= 6 ? 3 : 4;
+    const rows = Math.ceil(count / cols);
+    const panelAreaH = Math.max(PANEL_MIN_VIEWPORT_H, viewportHeight - 6);
+    const gapTotal = (rows - 1) * PANEL_GAP;
+    const panelH = Math.max(
+      PANEL_MIN_H,
+      Math.floor((panelAreaH - gapTotal) / rows),
+    );
+
+    return {
+      cols,
+      panelAreaH,
+      canvasH: panelH - PANEL_HEADER_H,
+    };
+  }
+
+  function syncRacePanel(panel, idx, runnerData, canvasH) {
+    if (!panel) return;
+
+    const canvas = panel.querySelector(".panel-canvas");
+    const badge = panel.querySelector(".panel-badge");
+    if (canvas) canvas.style.height = `${canvasH}px`;
+    if (runnerData) updateRaceAnimations(idx, runnerData);
+    applyRunnerBadge(badge, runnerData);
+  }
+
+  function createRacePanel(idx, runnerData, canvasH) {
+    const color = colorForAlgo(idx, idx);
+    const panel = document.createElement("div");
+    panel.className = "race-panel";
+
+    const header = document.createElement("div");
+    header.className = "panel-header";
+    header.style.backgroundColor = color;
+    header.textContent = runnerData.name;
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "panel-canvas";
+
+    const badge = document.createElement("div");
+    badge.className = "panel-badge";
+
+    panel.appendChild(header);
+    panel.appendChild(canvas);
+    panel.appendChild(badge);
+
+    syncRacePanel(panel, idx, runnerData, canvasH);
+    drawMiniMaze(canvas, runnerData, idx);
+    return panel;
+  }
+
+  function drawRaceCharts(results) {
+    const charts = [
+      {
+        id: "chart-nodes",
+        key: "nodes",
+        title: "Nodes Visited",
+        opts: { badge: makeLowBadge("EFFICIENT", { avgFactor: 0.88 }) },
+      },
+      {
+        id: "chart-path",
+        key: "path",
+        title: "Path Length",
+        opts: { badge: makeLowBadge("SHORT", { avgFactor: 0.9 }) },
+      },
+      {
+        id: "chart-cost",
+        key: "cost",
+        title: "Cost",
+        opts: { badge: makeLowBadge("CHEAP", { avgFactor: 0.9 }) },
+      },
+      {
+        id: "chart-time",
+        key: "time",
+        title: "Time (ms)",
+        opts: { badge: makeLowBadge("FAST", { avgFactor: 0.86 }) },
+      },
+      {
+        id: "chart-iterations",
+        key: "iterations",
+        title: "Iterations",
+        opts: {
+          formatValue: (v) => `\u00d7${Math.round(v)}`,
+          badge: makeLowBadge("FEW", { avgFactor: 0.8 }),
+        },
+      },
+      {
+        id: "chart-memory",
+        key: "peak_memory",
+        title: "Peak Memory (nodes)",
+        opts: {
+          formatValue: (v) => (v === 0 ? "\u2014" : `${Math.round(v)}`),
+          badge: makeLowBadge("LOW \u2193", { avgFactor: 0.75 }),
+        },
+      },
+    ];
+
+    charts.forEach(({ id, key, title, opts }) => {
+      drawChart($(id), results, key, title, opts);
+    });
+    drawRadarChart($("chart-radar"), results);
   }
 
   function renderRace() {
@@ -152,19 +321,9 @@ window.RacePage = (() => {
 
   function drawMiniMaze(canvas, runnerData, idx) {
     if (!runnerData || !runnerData.grid) return;
-    const dpr = devicePixelRatio || 1;
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    if (!w || !h) return;
-
-    const tw = Math.round(w * dpr);
-    const th = Math.round(h * dpr);
-    if (canvas.width !== tw || canvas.height !== th) {
-      canvas.width = tw;
-      canvas.height = th;
-    }
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const canvasBox = getCanvasBox(canvas);
+    if (!canvasBox) return;
+    const { ctx, w, h } = canvasBox;
 
     const rows = raceGridRows();
     const cols = raceGridCols();
@@ -177,7 +336,7 @@ window.RacePage = (() => {
     const ox = Math.floor((w - gw) / 2);
     const oy = Math.floor((h - gh) / 2);
 
-    ctx.fillStyle = "#F2F2F7";
+    ctx.fillStyle = PANEL_BG;
     ctx.fillRect(0, 0, w, h);
 
     const now = performance.now();
@@ -234,16 +393,11 @@ window.RacePage = (() => {
 
   function drawRadarChart(canvas, data) {
     if (!data || data.length < 2) return;
-    const dpr = devicePixelRatio || 1;
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    if (!w || !h) return;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const canvasBox = getCanvasBox(canvas, { resizeAlways: true });
+    if (!canvasBox) return;
+    const { ctx, w, h } = canvasBox;
 
-    ctx.fillStyle = "#FAFBFF";
+    ctx.fillStyle = CHART_BG;
     ctx.fillRect(0, 0, w, h);
 
     // Title
@@ -437,15 +591,11 @@ window.RacePage = (() => {
 
   function drawChart(canvas, data, key, title, opts = {}) {
     if (!data || !data.length) return;
-    const dpr = devicePixelRatio || 1;
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const canvasBox = getCanvasBox(canvas, { resizeAlways: true });
+    if (!canvasBox) return;
+    const { ctx, w, h } = canvasBox;
 
-    ctx.fillStyle = "#FAFBFF";
+    ctx.fillStyle = CHART_BG;
     ctx.fillRect(0, 0, w, h);
 
     ctx.font = "700 11px -apple-system, BlinkMacSystemFont, sans-serif";
@@ -473,7 +623,7 @@ window.RacePage = (() => {
     for (let i = 0; i < n; i++) {
       const bw = Math.max(4, (cw * vals[i]) / mx);
       const by = startY + i * (barH + gap);
-      const color = BAR_PAL[(data[i].alg_idx ?? i) % BAR_PAL.length];
+      const color = colorForAlgo(data[i].alg_idx, i);
 
       // background track
       ctx.fillStyle = "#ECEEF5";
@@ -551,48 +701,22 @@ window.RacePage = (() => {
       return;
     }
 
-    const cols = n <= 2 ? n : n <= 4 ? 2 : n <= 6 ? 3 : 4;
-    const rows = Math.ceil(n / cols);
-    container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
     const contentEl = $("content-race");
-    const viewportH = Math.max(320, contentEl.clientHeight - 6);
-    const gapTotal = (rows - 1) * 10;
-    const panelsSectionH = viewportH;
-    container.style.height = `${panelsSectionH}px`;
-    container.style.flexShrink = "0";
-    const panelH = Math.max(
-      120,
-      Math.floor((panelsSectionH - gapTotal) / rows),
+    const { cols, panelAreaH, canvasH } = getRacePanelLayout(
+      n,
+      contentEl.clientHeight,
     );
-    const canvasH = panelH - 24;
+    container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    container.style.height = `${panelAreaH}px`;
+    container.style.flexShrink = "0";
 
     const key = order.join(",");
     if (key === racePanelOrder.join(",")) {
       order.forEach((idx, i) => {
         const panel = container.children[i];
         if (!panel) return;
-        const canvas = panel.querySelector(".panel-canvas");
         const runnerData = race.runners[idx];
-        if (canvas) canvas.style.height = `${canvasH}px`;
-        if (runnerData)
-          updateRaceAnimations(
-            idx,
-            runnerData.grid,
-            runnerData.path,
-            raceGridCols(),
-          );
-        const badge = panel.querySelector(".panel-badge");
-        if (badge && runnerData && runnerData.done && runnerData.stats) {
-          if (runnerData.stats.found) {
-            badge.textContent = `Path: ${runnerData.stats.path}  |  ${(runnerData.stats.time * 1000).toFixed(2)} ms`;
-            badge.style.background = "#34C759";
-          } else {
-            badge.textContent = "No path found";
-            badge.style.background = "#FF3B30";
-          }
-          badge.style.display = "block";
-        }
+        syncRacePanel(panel, idx, runnerData, canvasH);
       });
       return;
     }
@@ -604,45 +728,7 @@ window.RacePage = (() => {
     order.forEach((idx) => {
       const runnerData = race.runners[idx];
       if (!runnerData) return;
-      const color = BAR_PAL[idx % BAR_PAL.length];
-      const panel = document.createElement("div");
-      panel.className = "race-panel";
-
-      const header = document.createElement("div");
-      header.className = "panel-header";
-      header.style.backgroundColor = color;
-      header.textContent = runnerData.name;
-
-      const canvas = document.createElement("canvas");
-      canvas.className = "panel-canvas";
-      canvas.style.height = `${canvasH}px`;
-
-      const badge = document.createElement("div");
-      badge.className = "panel-badge";
-
-      panel.appendChild(header);
-      panel.appendChild(canvas);
-      panel.appendChild(badge);
-      container.appendChild(panel);
-
-      updateRaceAnimations(
-        idx,
-        runnerData.grid,
-        runnerData.path,
-        raceGridCols(),
-      );
-      drawMiniMaze(canvas, runnerData, idx);
-
-      if (runnerData.done && runnerData.stats) {
-        if (runnerData.stats.found) {
-          badge.textContent = `Path: ${runnerData.stats.path}  |  ${(runnerData.stats.time * 1000).toFixed(2)} ms`;
-          badge.style.background = "#34C759";
-        } else {
-          badge.textContent = "No path found";
-          badge.style.background = "#FF3B30";
-        }
-        badge.style.display = "block";
-      }
+      container.appendChild(createRacePanel(idx, runnerData, canvasH));
     });
   }
 
@@ -653,7 +739,7 @@ window.RacePage = (() => {
     const selected = new Set(race.order);
     document.querySelectorAll(".race-toggle").forEach((button) => {
       const i = +button.dataset.idx;
-      const color = BAR_PAL[i % BAR_PAL.length];
+      const color = colorForAlgo(i, i);
       if (selected.has(i)) {
         button.classList.add("selected");
         button.style.background = color;
@@ -694,27 +780,7 @@ window.RacePage = (() => {
 
     if (race.results) {
       $("race-charts").classList.remove("hidden");
-      drawChart($("chart-nodes"), race.results, "nodes", "Nodes Visited", {
-        badge: makeLowBadge("EFFICIENT", { avgFactor: 0.88 }),
-      });
-      drawChart($("chart-path"), race.results, "path", "Path Length", {
-        badge: makeLowBadge("SHORT", { avgFactor: 0.9 }),
-      });
-      drawChart($("chart-cost"), race.results, "cost", "Cost", {
-        badge: makeLowBadge("CHEAP", { avgFactor: 0.9 }),
-      });
-      drawChart($("chart-time"), race.results, "time", "Time (ms)", {
-        badge: makeLowBadge("FAST", { avgFactor: 0.86 }),
-      });
-      drawChart($("chart-iterations"), race.results, "iterations", "Iterations", {
-        formatValue: (v) => `\u00d7${Math.round(v)}`,
-        badge: makeLowBadge("FEW", { avgFactor: 0.8 }),
-      });
-      drawChart($("chart-memory"), race.results, "peak_memory", "Peak Memory (nodes)", {
-        formatValue: (v) => v === 0 ? "\u2014" : `${Math.round(v)}`,
-        badge: makeLowBadge("LOW \u2193", { avgFactor: 0.75 }),
-      });
-      drawRadarChart($("chart-radar"), race.results);
+      drawRaceCharts(race.results);
     } else {
       $("race-charts").classList.add("hidden");
     }
