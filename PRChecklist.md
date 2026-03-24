@@ -1,196 +1,196 @@
 # PR Checklist
 
-File nay la checklist thuc thi de team follow song song voi `RefactorPlan.md`.
-Muc tieu la giup moi PR co scope ro, de check tien do, va khong quen buoc verify truoc khi merge.
+File này là checklist thực thi để team follow song song với `RefactorPlan.md`.
+Mục tiêu là giúp mỗi PR có scope rõ, dễ check tiến độ, và không quên bước verify trước khi merge.
 
-## Context Da Chot
+## Context Đã Chốt
 
-- Day la app demo tren lop.
-- Uu tien code gon, de demo, de sua.
-- Co the deploy nhe len Render.
-- Khong lam multi-user hoac per-session state.
-- Tree view da bo han, khong khoi phuc lai trong roadmap hien tai.
+- Đây là app demo trên lớp.
+- Ưu tiên code gọn, dễ demo, dễ sửa.
+- Có thể deploy nhẹ lên Render.
+- Không làm multi-user hoặc per-session state.
+- Tree view đã bỏ hẳn, không khôi phục lại trong roadmap hiện tại.
 
-## Cach Dung
+## Cách Dùng
 
-- Moi PR co the dien them `Owner`, `Branch`, `Status`, `Notes`.
-- Chi tick khi item da xong that su.
-- Neu PR doi behavior chinh thuc, phai cap nhat docs trong cung PR.
+- Mỗi PR có thể điền thêm `Owner`, `Branch`, `Status`, `Notes`.
+- Chỉ tick khi item đã xong thật sự.
+- Nếu PR đổi behavior chính thức, phải cập nhật docs trong cùng PR.
 
-## PR 0: Baseline Test Va Contract Hien Tai
+## PR 0: Baseline Test Và Contract Hiện Tại
 
 Owner:
 Branch:
 Status: Implemented, manual smoke pending
 Notes: Added stdlib unittest baseline for current API and runner flows.
 
-- [X] Tao thu muc `tests/`
-- [X] Them helper reset singleton state giua cac test
-- [X] Them test cho `GET /api/state`
-- [X] Them test cho `GET /api/race`
-- [X] Them test cho `POST /api/action`
-- [X] Them regression test cho `run`
-- [X] Them regression test cho `step`
-- [X] Them regression test cho `step_back`
-- [X] Them regression test cho `set_start` / `set_end` / `grid_cell`
-- [X] Them regression test cho `race_toggle` / `race_start`
-- [X] Them regression test cho `switch_tab`
-- [X] Chot expected shape cua `/api/state`
-- [X] Chot expected shape cua `/api/race`
+- [X] Tạo thư mục `tests/`
+- [X] Thêm helper reset singleton state giữa các test
+- [X] Thêm test cho `GET /api/state`
+- [X] Thêm test cho `GET /api/race`
+- [X] Thêm test cho `POST /api/action`
+- [X] Thêm regression test cho `run`
+- [X] Thêm regression test cho `step`
+- [X] Thêm regression test cho `step_back`
+- [X] Thêm regression test cho `set_start` / `set_end` / `grid_cell`
+- [X] Thêm regression test cho `race_toggle` / `race_start`
+- [X] Thêm regression test cho `switch_tab`
+- [X] Chốt expected shape của `/api/state`
+- [X] Chốt expected shape của `/api/race`
 - [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [X] Chay toan bo test moi
+- [X] Chạy toàn bộ test mới
 - [X] Smoke test tay `Visualize`
 - [X] Smoke test tay `Race`
 
-## PR 1: On Dinh Runtime State Va Giam Race Condition
+## PR 1: Ổn Định Runtime State Và Giảm Race Condition
 
 Owner:
 Branch:
 Status: Implemented, manual smoke pending
 Notes: Moved race runtime into `state.race`, added `RLock`, and wrapped key snapshots/mutations.
 
-- [X] Ra lai toan bo diem mutate shared state trong `core/runner.py`
-- [X] Them lock hoac co che snapshot nhat quan cho cac doan nhay cam
-- [X] Gom state `race` ve object/namespace ro rang hon
-- [X] Chuan hoa `get_visual_state()`
-- [X] Chuan hoa `get_race_state()`
-- [X] Giam read/write rai rac kho trace
-- [X] Ghi chu ro assumption single-user trong code/docs neu can
+- [X] Rà lại toàn bộ điểm mutate shared state trong `core/runner.py`
+- [X] Thêm lock hoặc cơ chế snapshot nhất quán cho các đoạn nhạy cảm
+- [X] Gom state `race` về object/namespace rõ ràng hơn
+- [X] Chuẩn hóa `get_visual_state()`
+- [X] Chuẩn hóa `get_race_state()`
+- [X] Giảm read/write rải rác khó trace
+- [X] Ghi chú rõ assumption single-user trong code/docs nếu cần
 - [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [X] Chay test lien quan state/runner
+- [X] Chạy test liên quan state/runner
 - [X] Smoke test tay `Visualize`
 - [X] Smoke test tay `Race`
 
-## PR 2: Tach `handle_action()` Va Siet Contract Action
+## PR 2: Tách `handle_action()` Và Siết Contract Action
 
 Owner:
 Branch:
 Status: Implemented, manual smoke pending
 Notes: Added `core/action_handlers.py`, centralized validation, and clearer `/api/action` error responses.
 
-- [X] Tach handler theo nhom `visualize`
-- [X] Tach handler theo nhom `race`
-- [X] Tach handler theo nhom `tab/system`
-- [X] Giam chuoi `if/elif` dai trong `handle_action()`
-- [X] Chuan hoa validate payload o mot cho
-- [X] Chuan hoa parse kieu du lieu o mot cho
-- [X] Tra response ro hon cho action invalid hoac payload loi
-- [X] Giu silent no-op chi o cho that su chu y
+- [X] Tách handler theo nhóm `visualize`
+- [X] Tách handler theo nhóm `race`
+- [X] Tách handler theo nhóm `tab/system`
+- [X] Giảm chuỗi `if/elif` dài trong `handle_action()`
+- [X] Chuẩn hóa validate payload ở một chỗ
+- [X] Chuẩn hóa parse kiểu dữ liệu ở một chỗ
+- [X] Trả response rõ hơn cho action invalid hoặc payload lỗi
+- [X] Giữ silent no-op chỉ ở chỗ thật sự chủ ý
 - [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [X] Chay test API/action
+- [X] Chạy test API/action
 - [X] Smoke test tay `Visualize`
 - [X] Smoke test tay `Race`
 
-## PR 3: Chuan Hoa State Giua Visualize Va Race
+## PR 3: Chuẩn Hóa State Giữa Visualize Và Race
 
 Owner:
 Branch:
 Status: Implemented, manual smoke pending
 Notes: Race now reads grid shape and speed from `/api/race`, and unfinished Visualize sessions are intentionally discarded on tab switch.
 
-- [X] Chot behavior chinh thuc khi doi tab
-- [X] Bo phu thuoc mo ho vao cache `state.viz` o frontend
-- [X] Lam ro strategy preserve hoac reset session khi doi tab
-- [X] Neu khong preserve duoc generator state thi phan anh behavior cho dung
-- [X] Dam bao `Race` lay `rows`, `cols`, `speed` tu nguon dang tin cay
-- [X] Dam bao quay lai `Visualize` khong gay hieu nham ve step/pause state
+- [X] Chốt behavior chính thức khi đổi tab
+- [X] Bỏ phụ thuộc mơ hồ vào cache `state.viz` ở frontend
+- [X] Làm rõ strategy preserve hoặc reset session khi đổi tab
+- [X] Nếu không preserve được generator state thì phản ánh behavior cho đúng
+- [X] Đảm bảo `Race` lấy `rows`, `cols`, `speed` từ nguồn đáng tin cậy
+- [X] Đảm bảo quay lại `Visualize` không gây hiểu nhầm về step/pause state
 - [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [X] Chay test `switch_tab` va state snapshot
+- [X] Chạy test `switch_tab` và state snapshot
 - [X] Smoke test tay `Visualize`
 - [X] Smoke test tay `Race`
 
-## PR 4: Chuan Hoa Algorithm Contract Va Checkpoint Flow
+## PR 4: Chuẩn Hóa Algorithm Contract Và Checkpoint Flow
 
 Owner:
 Branch:
 Status: Implemented, manual smoke pending
 Notes: Added shared finalize helpers, normalized algorithm stats/came_from/finished, and hardened checkpoint wrappers.
 
-- [X] Liet ke contract chung cho moi thuat toan
-- [X] Chuan hoa `state.stats` du field cho tat ca thuat toan
-- [X] Chuan hoa `state.came_from`
-- [X] Chuan hoa `state.finished`
-- [X] Ra nhanh thoat som cua cac thuat toan
-- [X] Don assumption ngam trong checkpoint wrapper
-- [X] Can nhac helper finalize success/failure dung chung
-- [X] Xoa placeholder hoac code thua trong `algorithms/__init__.py`
+- [X] Liệt kê contract chung cho mỗi thuật toán
+- [X] Chuẩn hóa `state.stats` đủ field cho tất cả thuật toán
+- [X] Chuẩn hóa `state.came_from`
+- [X] Chuẩn hóa `state.finished`
+- [X] Rà nhanh thoát sớm của các thuật toán
+- [X] Dọn assumption ngầm trong checkpoint wrapper
+- [X] Cân nhắc helper finalize success/failure dùng chung
+- [X] Xóa placeholder hoặc code thừa trong `algorithms/__init__.py`
 - [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [X] Chay test thuat toan/race/checkpoint
+- [X] Chạy test thuật toán/race/checkpoint
 - [ ] Smoke test tay `Visualize`
 - [ ] Smoke test tay `Race`
 
-## PR 5: Cleanup Race Rendering Va Logic Chap Va
+## PR 5: Cleanup Race Rendering Và Logic Chắp Vá
 
 Owner:
 Branch:
 Status: Implemented, manual smoke pending
 Notes: Reduced `race.js` duplication with shared sizing/badge helpers and preserved the tighter Race layout.
 
-- [X] Sua call signature cua `updateRaceAnimations()`
-- [X] Tach helper badge text
-- [X] Tach helper badge color
-- [X] Ra helper sizing cho panel/chart neu can
-- [X] Giam duplication trong `race.js`
-- [X] Ra lai hard-coded value lon trong chart/radar/panel
-- [X] Giu nguyen hanh vi UI hien tai sau refactor
-- [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [X] Neu can, chay `node --check static/js/race.js`
+- [ ] Sửa call signature của `updateRaceAnimations()`
+- [ ] Tách helper badge text
+- [ ] Tách helper badge color
+- [ ] Rà helper sizing cho panel/chart nếu cần
+- [ ] Giảm duplication trong `race.js`
+- [ ] Rà lại hard-coded value lớn trong chart/radar/panel
+- [ ] Giữ nguyên hành vi UI hiện tại sau refactor
+- [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
+- [ ] Nếu cần, chạy `node --check static/js/race.js`
 - [ ] Smoke test tay `Race`
 
-## PR 6: Don Logic Cu O Visualize
+## PR 6: Dọn Logic Cũ Ở Visualize
 
 Owner:
 Branch:
 Status:
 Notes:
 
-- [ ] Chot ro finished-mode co zoom/pan hay khong
-- [ ] Neu bo zoom/pan thi xoa toan bo state/listener lien quan
-- [ ] Xoa hoac implement dung `maze_running`
-- [ ] Xoa branch UI khong con reachable
-- [ ] Don phan interaction/animation/polling bi chong cheo neu co the
-- [ ] Don CSS thua hoac ghi de khong can thiet
+- [ ] Chốt rõ finished-mode có zoom/pan hay không
+- [ ] Nếu bỏ zoom/pan thì xóa toàn bộ state/listener liên quan
+- [ ] Xóa hoặc implement đúng `maze_running`
+- [ ] Xóa branch UI không còn reachable
+- [ ] Dọn phần interaction/animation/polling bị chồng chéo nếu có thể
+- [ ] Dọn CSS thừa hoặc ghi đè không cần thiết
 - [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Neu can, chay `node --check static/js/visualize.js`
+- [ ] Nếu cần, chạy `node --check static/js/visualize.js`
 - [ ] Smoke test tay `Visualize`
 
-## PR 7: Dong Bo Docs Va Xoa Dau Vet Tree View
+## PR 7: Đồng Bộ Docs Và Xóa Dấu Vết Tree View
 
 Owner:
 Branch:
 Status:
 Notes:
 
-- [ ] Xoa moi mo ta cu ve tree view trong docs chinh
-- [ ] Xoa moi mo ta cu ve `/api/tree`
-- [ ] Xoa moi mo ta cu ve `btn-tree`, `tree-area`, `show_tree`
-- [ ] Cap nhat docs theo 3 endpoint thuc te dang dung
-- [ ] Cap nhat docs theo polling model hien tai
-- [ ] Cap nhat docs theo command/query split qua `/api/action`
-- [ ] Cap nhat huong dan chay bang `.venv` tren PowerShell/Windows
-- [ ] Ghi ro day la app demo single-user, deploy nhe len Render neu can
-- [ ] Ra lai `README.md`
-- [ ] Ra lai `Architecture.md`
-- [ ] Ra lai `AGENTS.md`
-- [ ] Ra lai doc phu khac neu repo con dung
+- [ ] Xóa mọi mô tả cũ về tree view trong docs chính
+- [ ] Xóa mọi mô tả cũ về `/api/tree`
+- [ ] Xóa mọi mô tả cũ về `btn-tree`, `tree-area`, `show_tree`
+- [ ] Cập nhật docs theo 3 endpoint thực tế đang dùng
+- [ ] Cập nhật docs theo polling model hiện tại
+- [ ] Cập nhật docs theo command/query split qua `/api/action`
+- [ ] Cập nhật hướng dẫn chạy bằng `.venv` trên PowerShell/Windows
+- [ ] Ghi rõ đây là app demo single-user, deploy nhẹ lên Render nếu cần
+- [ ] Rà lại `README.md`
+- [ ] Rà lại `Architecture.md`
+- [ ] Rà lại `AGENTS.md`
+- [ ] Rà lại doc phụ khác nếu repo còn dùng
 
-## PR 8: Don Dead Code, Duplication Va Magic Numbers
+## PR 8: Dọn Dead Code, Duplication Và Magic Numbers
 
 Owner:
 Branch:
 Status:
 Notes:
 
-- [ ] Dua `2000`, `500` va cac threshold tuong tu thanh named constants
-- [ ] Gom constant frontend dung chung neu hop ly
-- [ ] Xoa field treo khong con dung
-- [ ] Xoa helper thua khong con dung
-- [ ] Xoa dead branch sau khi behavior da chot
-- [ ] Don naming de file scan de hon
-- [ ] Don formatting cho cac file dai
+- [ ] Đưa `2000`, `500` và các threshold tương tự thành named constants
+- [ ] Gom constant frontend dùng chung nếu hợp lý
+- [ ] Xóa field treo không còn dùng
+- [ ] Xóa helper thừa không còn dùng
+- [ ] Xóa dead branch sau khi behavior đã chốt
+- [ ] Dọn naming để file scan dễ hơn
+- [ ] Dọn formatting cho các file dài
 - [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Neu can, chay `node --check static/js/app.js`
-- [ ] Neu can, chay `node --check static/js/visualize.js`
-- [ ] Neu can, chay `node --check static/js/race.js`
+- [ ] Nếu cần, chạy `node --check static/js/app.js`
+- [ ] Nếu cần, chạy `node --check static/js/visualize.js`
+- [ ] Nếu cần, chạy `node --check static/js/race.js`
 - [ ] Smoke test tay `Visualize`
 - [ ] Smoke test tay `Race`
