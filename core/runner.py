@@ -6,6 +6,12 @@ import time
 from algorithms import ALGO_FUNCS, ALG_NAMES
 from algorithms._contract import finalize_failure, finalize_success
 from core.action_handlers import RunnerActionHooks, dispatch_action
+from core.constants import (
+    RUN_LOOP_INTERVAL_SECONDS,
+    STEP_HISTORY_LIMIT,
+    STEP_HISTORY_TRIM,
+    THREAD_JOIN_TIMEOUT_SECONDS,
+)
 from core.grid import build_grid_array
 from core.state import state
 
@@ -24,7 +30,7 @@ def _do_cancel_race():
         race.history_gen_base = 0
 
 
-def reset_runtime_state(wait_for_threads=True, timeout=0.5):
+def reset_runtime_state(wait_for_threads=True, timeout=THREAD_JOIN_TIMEOUT_SECONDS):
     """Reset visualize and race runtime state for tests and fresh app sessions."""
     with state.runtime_lock:
         state.running = False
@@ -61,7 +67,6 @@ def get_visual_state():
             "set_mode": state.set_mode,
             "stats": dict(state.stats),
             "checkpoint": list(state.checkpoint_cell) if state.checkpoint_cell else None,
-            "maze_running": False,
         }
 
 
@@ -354,11 +359,11 @@ def _algo_loop():
                     state.vis_cells = vis
                     state.front_cells = front
                     snap = (set(vis), set(front))
-                    if len(state.step_history) < 2000:
+                    if len(state.step_history) < STEP_HISTORY_LIMIT:
                         state.step_history.append(snap)
                     else:
-                        state.step_history = state.step_history[500:]
-                        state.step_history_gen_base += 500
+                        state.step_history = state.step_history[STEP_HISTORY_TRIM:]
+                        state.step_history_gen_base += STEP_HISTORY_TRIM
                         state.step_history.append(snap)
                     state.step_ptr = len(state.step_history) - 1
                 except StopIteration:
@@ -368,7 +373,7 @@ def _algo_loop():
                     print(f"[Algo error] {exc}")
                     state.running = False
                     break
-        time.sleep(1 / 60)
+        time.sleep(RUN_LOOP_INTERVAL_SECONDS)
     with state.runtime_lock:
         if state.algo_thread is threading.current_thread():
             state.algo_thread = None
@@ -454,11 +459,11 @@ def _race_loop():
                         state.clear_search()
                         snap[idx] = (set(runner["vis"]), set())
                 if any_active:
-                    if len(race.step_history) < 2000:
+                    if len(race.step_history) < STEP_HISTORY_LIMIT:
                         race.step_history.append(snap)
                     else:
-                        race.step_history = race.step_history[500:]
-                        race.history_gen_base += 500
+                        race.step_history = race.step_history[STEP_HISTORY_TRIM:]
+                        race.history_gen_base += STEP_HISTORY_TRIM
                         race.step_history.append(snap)
                     race.step_ptr = len(race.step_history) - 1
             if all(race.runners.get(i, {}).get("done", False) for i in race.order):
@@ -466,7 +471,7 @@ def _race_loop():
                 race.done = True
                 race.results = _build_race_results()
                 break
-        time.sleep(1 / 60)
+        time.sleep(RUN_LOOP_INTERVAL_SECONDS)
     with state.runtime_lock:
         if state.race.thread is threading.current_thread():
             state.race.thread = None

@@ -21,11 +21,6 @@ window.VisualizePage = (() => {
   let mBtn = 0;
   let gInfo = { rows: 0, cols: 0, cell: 0, ox: 0, oy: 0 };
 
-  let gZoom = 1;
-  let gPanX = 0;
-  let gPanY = 0;
-  let gDrag = null;
-
   let ddOpen = false;
 
   let lastVizRows = 0;
@@ -42,7 +37,7 @@ window.VisualizePage = (() => {
   let prevGrid = null;
   const animCells = new Map();
 
-  const { $, act, fitCanvas, state } = window.App;
+  const { $, act, fitCanvas, state, uiConfig } = window.App;
 
   function vizState() {
     return state.viz;
@@ -94,8 +89,12 @@ window.VisualizePage = (() => {
         if (oldT === newT) continue;
         const key = `${r},${c}`;
         if (newT === 6) {
-          const delay = (pathIdx.get(key) ?? 0) * 18;
-          animCells.set(key, { startTime: now + delay, duration: 320 });
+          const delay =
+            (pathIdx.get(key) ?? 0) * uiConfig.pathAnimationStepDelayMs;
+          animCells.set(key, {
+            startTime: now + delay,
+            duration: uiConfig.pathAnimationDurationMs,
+          });
         } else {
           animCells.delete(key);
         }
@@ -110,18 +109,11 @@ window.VisualizePage = (() => {
     const { rows, cols, grid } = viz;
     const cw = gridCanvas.clientWidth;
     const ch = gridCanvas.clientHeight;
-    const baseCellRaw = Math.min(cw / cols, ch / rows);
-    const baseCell = Math.max(1, Math.floor(baseCellRaw));
-    const viewMode = !!viz.finished;
-    const cell = viewMode
-      ? Math.max(1, Math.floor(baseCell * gZoom))
-      : baseCell;
+    const cell = Math.max(1, Math.floor(Math.min(cw / cols, ch / rows)));
     const gw = cols * cell;
     const gh = rows * cell;
-    const basOx = Math.floor((cw - gw) / 2);
-    const basOy = Math.floor((ch - gh) / 2);
-    const ox = viewMode ? basOx + Math.round(gPanX) : basOx;
-    const oy = viewMode ? basOy + Math.round(gPanY) : basOy;
+    const ox = Math.floor((cw - gw) / 2);
+    const oy = Math.floor((ch - gh) / 2);
     gInfo = { rows, cols, cell, ox, oy };
 
     gridCtx.fillStyle = "#F2F2F7";
@@ -223,12 +215,8 @@ window.VisualizePage = (() => {
     }
     $("btn-step-back").disabled =
       (viz.step_ptr ?? -1) < 1 || viz.finished || viz.running;
-    $("btn-step-fwd").disabled =
-      viz.running || viz.finished || viz.maze_running;
+    $("btn-step-fwd").disabled = viz.running || viz.finished;
     $("btn-cancel").classList.toggle("hidden", !isActive && !viz.finished);
-
-    $("btn-maze").textContent = viz.maze_running ? "Generating…" : "Basic Maze";
-    $("btn-maze").disabled = !!viz.maze_running;
 
     const hasCp = !!viz.checkpoint;
     $("cp-label").textContent = hasCp ? "Cancel Checkpoint" : "Checkpoint";
@@ -294,21 +282,12 @@ window.VisualizePage = (() => {
   async function poll() {
     if (state.tab !== "visualize") return;
     try {
-      const prevFinished = !!state.viz?.finished;
       state.viz = await (await fetch("/api/state")).json();
-      if (prevFinished && !state.viz.finished) {
-        gZoom = 1;
-        gPanX = 0;
-        gPanY = 0;
-      }
       if (state.viz.rows !== lastVizRows || state.viz.cols !== lastVizCols) {
         lastVizRows = state.viz.rows;
         lastVizCols = state.viz.cols;
         prevGrid = null;
         animCells.clear();
-        gZoom = 1;
-        gPanX = 0;
-        gPanY = 0;
       }
       if (state.viz.grid)
         updateAnimations(state.viz.grid, state.viz.rows, state.viz.cols);
@@ -450,12 +429,6 @@ window.VisualizePage = (() => {
 
     gridCanvas.addEventListener("mousedown", (e) => {
       const viz = vizState();
-      // In view mode (finished): pan the grid, no editing
-      if (viz?.finished) {
-        gDrag = { sx: e.clientX, sy: e.clientY, ox: gPanX, oy: gPanY };
-        document.body.style.cursor = "grabbing";
-        return;
-      }
       const p = gridPos(e);
       if (terrainBrush > 0 && p && !viz?.running) {
         mDown = true;
@@ -515,10 +488,6 @@ window.VisualizePage = (() => {
 
     gridCanvas.addEventListener("mousemove", (e) => {
       const viz = vizState();
-      if (viz?.finished) {
-        gridCanvas.style.cursor = gDrag ? "grabbing" : "grab";
-        return;
-      }
       if (!mDown && !dragType) {
         const p = gridPos(e);
         if (p && viz?.grid && !viz.running) {
@@ -554,39 +523,8 @@ window.VisualizePage = (() => {
       lastWallPos = null;
       document.body.style.cursor = "";
       mDown = false;
-      gDrag = null;
     });
     gridCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
-
-    gridCanvas.addEventListener(
-      "wheel",
-      (e) => {
-        const viz = vizState();
-        if (!viz?.finished) return;
-        e.preventDefault();
-        const f = e.deltaY < 0 ? 1.12 : 0.88;
-        const nz = Math.max(0.5, Math.min(10, gZoom * f));
-        const cw = gridCanvas.clientWidth;
-        const ch = gridCanvas.clientHeight;
-        const rows = viz.rows,
-          cols = viz.cols;
-        const rect = gridCanvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-        const { cell, ox, oy } = gInfo;
-        const wx = (mx - ox) / cell;
-        const wy = (my - oy) / cell;
-        const baseCellRaw = Math.min(cw / cols, ch / rows);
-        const baseCell = Math.max(1, Math.floor(baseCellRaw));
-        const newCell = Math.max(1, Math.floor(baseCell * nz));
-        const newBasOx = Math.floor((cw - cols * newCell) / 2);
-        const newBasOy = Math.floor((ch - rows * newCell) / 2);
-        gPanX = mx - newBasOx - wx * newCell;
-        gPanY = my - newBasOy - wy * newCell;
-        gZoom = nz;
-      },
-      { passive: false },
-    );
 
     document.addEventListener("mousemove", (e) => {
       if (dragType) {
@@ -601,10 +539,6 @@ window.VisualizePage = (() => {
           };
           act({ action: actionMap[dragType], r: p.r, c: p.c });
         }
-      }
-      if (gDrag) {
-        gPanX = gDrag.ox + e.clientX - gDrag.sx;
-        gPanY = gDrag.oy + e.clientY - gDrag.sy;
       }
     });
   }
@@ -625,7 +559,7 @@ window.VisualizePage = (() => {
 
     onResize();
     poll();
-    setInterval(poll, 40);
+    setInterval(poll, uiConfig.pollIntervalMs);
     requestAnimationFrame(render);
   }
 

@@ -2,7 +2,7 @@
 
 import threading
 
-from core.constants import COLS, ROWS
+from core.constants import COLS, DEFAULT_SPEED, ROWS
 
 
 class RaceRuntime:
@@ -53,13 +53,12 @@ class State:
         self.finished = False
         self.cur_alg = 0
         self.set_mode = None    # None | 'start' | 'end' | 'checkpoint'
-        self.speed = 20
+        self.speed = DEFAULT_SPEED
         self.alg_gen = None
         self.algo_thread = None
         self._counter = [0]
 
         self.stats = self._new_stats()
-        self.run_history = []
         self.came_from = {}
 
         self.step_history = []   # list of (vis_copy, front_copy) for step-back
@@ -126,9 +125,8 @@ class State:
             self.checkpoint_cell = None
             self.cur_alg = 0
             self.set_mode = None
-            self.speed = 20
+            self.speed = DEFAULT_SPEED
             self._counter[0] = 0
-            self.run_history = []
             self.viz_snapshot = None
 
 

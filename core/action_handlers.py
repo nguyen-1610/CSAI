@@ -3,12 +3,18 @@
 from dataclasses import dataclass
 
 from algorithms import ALGO_FUNCS, ALG_NAMES
-from core.constants import MAX_C, MAX_R, MAX_SPEED, MIN_C, MIN_R
+from core.constants import (
+    MAX_C,
+    MAX_R,
+    MAX_SPEED,
+    MIN_C,
+    MIN_R,
+    STEP_HISTORY_LIMIT,
+    STEP_HISTORY_TRIM,
+)
 from core.grid import generate_maze, generate_plain_terrain
 from core.state import state
 
-MAX_STEP_HISTORY = 2000
-STEP_HISTORY_TRIM = 500
 ALLOWED_TABS = {"visualize", "race"}
 ALLOWED_TERRAINS = {0, 8, 9, 10}
 MISSING = object()
@@ -314,7 +320,7 @@ def handle_step(_payload, hooks):
             vis, front = next(state.alg_gen)
             state.vis_cells = vis
             state.front_cells = front
-            if len(state.step_history) < MAX_STEP_HISTORY:
+            if len(state.step_history) < STEP_HISTORY_LIMIT:
                 state.step_history.append((set(vis), set(front)))
                 state.step_ptr = len(state.step_history) - 1
         except StopIteration:
@@ -587,7 +593,7 @@ def handle_race_step(_payload, hooks):
             state.clear_search()
             snap[idx] = (set(runner["vis"]), set())
 
-    if len(race.step_history) < MAX_STEP_HISTORY:
+    if len(race.step_history) < STEP_HISTORY_LIMIT:
         race.step_history.append(snap)
     else:
         race.step_history = race.step_history[STEP_HISTORY_TRIM:]

@@ -48,7 +48,7 @@ window.RacePage = (() => {
   const BADGE_SUCCESS_BG = "#34C759";
   const BADGE_FAILURE_BG = "#FF3B30";
 
-  const { $, act, state } = window.App;
+  const { $, act, state, uiConfig } = window.App;
 
   function raceState() {
     return state.race;
@@ -130,8 +130,12 @@ window.RacePage = (() => {
         const r = Math.floor(i / gridCols);
         const c = i % gridCols;
         const key = `${r},${c}`;
-        const delay = (pathIdx.get(key) ?? 0) * 18;
-        animMap.set(key, { startTime: now + delay, duration: 320 });
+        const delay =
+          (pathIdx.get(key) ?? 0) * uiConfig.pathAnimationStepDelayMs;
+        animMap.set(key, {
+          startTime: now + delay,
+          duration: uiConfig.pathAnimationDurationMs,
+        });
       }
     }
     prevRaceGrids.set(idx, grid.slice());
@@ -836,7 +840,7 @@ window.RacePage = (() => {
       if (tab === "race") poll();
     });
     poll();
-    setInterval(poll, 40);
+    setInterval(poll, uiConfig.pollIntervalMs);
   }
 
   return { init };

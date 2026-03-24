@@ -141,56 +141,56 @@ Notes: Reduced `race.js` duplication with shared sizing/badge helpers and preser
 
 Owner:
 Branch:
-Status:
-Notes:
+Status: Implemented, manual smoke pending
+Notes: Removed finished-mode zoom/pan, dropped dead `maze_running` state, and cleaned duplicated Visualize CSS without changing the current layout structure.
 
-- [ ] Chốt rõ finished-mode có zoom/pan hay không
-- [ ] Nếu bỏ zoom/pan thì xóa toàn bộ state/listener liên quan
-- [ ] Xóa hoặc implement đúng `maze_running`
-- [ ] Xóa branch UI không còn reachable
-- [ ] Dọn phần interaction/animation/polling bị chồng chéo nếu có thể
-- [ ] Dọn CSS thừa hoặc ghi đè không cần thiết
-- [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Nếu cần, chạy `node --check static/js/visualize.js`
-- [ ] Smoke test tay `Visualize`
+- [X] Chốt rõ finished-mode có zoom/pan hay không
+- [X] Nếu bỏ zoom/pan thì xóa toàn bộ state/listener liên quan
+- [X] Xóa hoặc implement đúng `maze_running`
+- [X] Xóa branch UI không còn reachable
+- [X] Dọn phần interaction/animation/polling bị chồng chéo nếu có thể
+- [X] Dọn CSS thừa hoặc ghi đè không cần thiết
+- [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
+- [X] Nếu cần, chạy `node --check static/js/visualize.js`
+- [X] Smoke test tay `Visualize`
 
 ## PR 7: Đồng Bộ Docs Và Xóa Dấu Vết Tree View
 
 Owner:
 Branch:
-Status:
-Notes:
+Status: Done
+Notes: Rewrote core docs to match the current codebase, removed old tree-view descriptions, and documented the actual 3-endpoint polling model with `.venv` run instructions for macOS/Linux and PowerShell.
 
-- [ ] Xóa mọi mô tả cũ về tree view trong docs chính
-- [ ] Xóa mọi mô tả cũ về `/api/tree`
-- [ ] Xóa mọi mô tả cũ về `btn-tree`, `tree-area`, `show_tree`
-- [ ] Cập nhật docs theo 3 endpoint thực tế đang dùng
-- [ ] Cập nhật docs theo polling model hiện tại
-- [ ] Cập nhật docs theo command/query split qua `/api/action`
-- [ ] Cập nhật hướng dẫn chạy bằng `.venv` trên PowerShell/Windows
-- [ ] Ghi rõ đây là app demo single-user, deploy nhẹ lên Render nếu cần
-- [ ] Rà lại `README.md`
-- [ ] Rà lại `Architecture.md`
-- [ ] Rà lại `AGENTS.md và CLAUDE.md`
-- [ ] Rà lại doc phụ khác nếu repo còn dùng
+- [X] Xóa mọi mô tả cũ về tree view trong docs chính
+- [X] Xóa mọi mô tả cũ về `/api/tree`
+- [X] Xóa mọi mô tả cũ về `btn-tree`, `tree-area`, `show_tree`
+- [X] Cập nhật docs theo 3 endpoint thực tế đang dùng
+- [X] Cập nhật docs theo polling model hiện tại
+- [X] Cập nhật docs theo command/query split qua `/api/action`
+- [X] Cập nhật hướng dẫn chạy bằng `.venv` trên PowerShell/Windows
+- [X] Ghi rõ đây là app demo single-user, deploy nhẹ lên Render nếu cần
+- [X] Rà lại `README.md`
+- [X] Rà lại `Architecture.md`
+- [X] Rà lại `AGENTS.md và CLAUDE.md`
+- [X] Rà lại doc phụ khác nếu repo còn dùng
 
 ## PR 8: Dọn Dead Code, Duplication Và Magic Numbers
 
 Owner:
 Branch:
-Status:
-Notes:
+Status: Implemented, manual smoke pending
+Notes: Centralized backend/frontend timing constants, removed dead data like `ALG_FULL`, `treeData`, and `run_history`, and cleaned a few remaining magic numbers without changing behavior.
 
-- [ ] Đưa `2000`, `500` và các threshold tương tự thành named constants
-- [ ] Gom constant frontend dùng chung nếu hợp lý
-- [ ] Xóa field treo không còn dùng
-- [ ] Xóa helper thừa không còn dùng
-- [ ] Xóa dead branch sau khi behavior đã chốt
-- [ ] Dọn naming để file scan dễ hơn
-- [ ] Dọn formatting cho các file dài
-- [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Nếu cần, chạy `node --check static/js/app.js`
-- [ ] Nếu cần, chạy `node --check static/js/visualize.js`
-- [ ] Nếu cần, chạy `node --check static/js/race.js`
-- [ ] Smoke test tay `Visualize`
-- [ ] Smoke test tay `Race`
+- [X] Đưa `2000`, `500` và các threshold tương tự thành named constants
+- [X] Gom constant frontend dùng chung nếu hợp lý
+- [X] Xóa field treo không còn dùng
+- [X] Xóa helper thừa không còn dùng
+- [X] Xóa dead branch sau khi behavior đã chốt
+- [X] Dọn naming để file scan dễ hơn
+- [X] Dọn formatting cho các file dài
+- [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
+- [X] Nếu cần, chạy `node --check static/js/app.js`
+- [X] Nếu cần, chạy `node --check static/js/visualize.js`
+- [X] Nếu cần, chạy `node --check static/js/race.js`
+- [X] Smoke test tay `Visualize`
+- [X] Smoke test tay `Race`

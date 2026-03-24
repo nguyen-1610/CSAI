@@ -84,7 +84,6 @@ class MazeApiBaselineTests(unittest.TestCase):
                 "set_mode",
                 "stats",
                 "checkpoint",
-                "maze_running",
             },
         )
         self.assertEqual(len(state["grid"]), state["rows"] * state["cols"])

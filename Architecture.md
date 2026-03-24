@@ -4,10 +4,16 @@
 
 Project hiện tại là một web app Flask để visualize và so sánh các thuật toán tìm đường trên grid.
 
-Ứng dụng có 2 chế độ chính:
+Ứng dụng có 2 mode chính:
 
-- `Visualize`: chạy một thuật toán, hỗ trợ pause, continue, step, step-back, checkpoint, weighted terrain, tree view.
-- `Race`: chạy nhiều thuật toán song song để so sánh nodes/path/cost/time.
+- `Visualize`: chạy 1 thuật toán, hỗ trợ pause, continue, step, step-back, checkpoint, weighted terrain.
+- `Race`: chạy nhiều thuật toán song song để so sánh kết quả.
+
+Lưu ý quan trọng:
+
+- Tree view không còn nằm trong code hiện tại.
+- Tab `Visualize` luôn auto-fit grid, không còn zoom/pan bằng chuột.
+- App là singleton runtime trong một process, phù hợp demo local hoặc deploy nhẹ.
 
 ## Cấu trúc thư mục hiện tại
 
@@ -16,34 +22,39 @@ lab01/
 ├── app.py
 ├── core/
 │   ├── __init__.py
+│   ├── action_handlers.py
 │   ├── constants.py
-│   ├── state.py
 │   ├── grid.py
 │   ├── runner.py
-│   └── tree.py
+│   └── state.py
 ├── algorithms/
 │   ├── __init__.py
-│   ├── bfs.py
-│   ├── dfs.py
-│   ├── ucs.py
+│   ├── _contract.py
 │   ├── astar.py
-│   ├── iddfs.py
-│   ├── bidirectional.py
 │   ├── beam.py
-│   └── idastar.py
-├── templates/
-│   └── index.html
+│   ├── bfs.py
+│   ├── bidirectional.py
+│   ├── dfs.py
+│   ├── idastar.py
+│   ├── iddfs.py
+│   └── ucs.py
 ├── static/
 │   ├── css/
+│   │   ├── race.css
 │   │   ├── style.css
-│   │   ├── visualize.css
-│   │   └── race.css
+│   │   └── visualize.css
 │   └── js/
 │       ├── app.js
-│       ├── visualize.js
-│       └── race.js
+│       ├── race.js
+│       └── visualize.js
+├── templates/
+│   └── index.html
+├── tests/
+│   ├── test_algorithm_contract.py
+│   └── test_api_baseline.py
 ├── AGENTS.md
-└── Architecture.md
+├── Architecture.md
+└── README.md
 ```
 
 ## Dependency graph
@@ -61,39 +72,38 @@ core/grid.py
 algorithms/*.py
   └── import core.state, core.grid
 
-core/tree.py
-  └── import core.state
+core/action_handlers.py
+  └── parse payload, validate action, mutate state
 
 core/runner.py
-  └── import core.constants, core.state, core.grid, algorithms
+  └── orchestration cho visualize/race, thread loop, state serialization
 
 app.py
-  └── import core.runner, core.tree, algorithms
+  └── import core.runner, algorithms
 
 templates/index.html
   └── load static JS/CSS
 
 static/js/app.js
-  └── shell chung cho frontend
+  └── shell chung, tab switching, helper act()/fitCanvas()
 
 static/js/visualize.js
-  └── dùng /api/state, /api/tree
+  └── dùng GET /api/state + POST /api/action
 
 static/js/race.js
-  └── dùng /api/race
+  └── dùng GET /api/race + POST /api/action
 ```
 
 ## Backend
 
 ### `app.py`
 
-File Flask entrypoint, hiện khá mỏng:
+File Flask entrypoint, khá mỏng:
 
 - render `index.html`
-- expose:
+- expose đúng 3 endpoint:
   - `GET /api/state`
   - `GET /api/race`
-  - `GET /api/tree`
   - `POST /api/action`
 - bật auto-reload trong local dev qua `MAZE_DEBUG`
 
@@ -106,7 +116,7 @@ Chỉ giữ constants:
 - speed limits
 - grid size limits
 
-Không giữ runtime state nữa.
+Không giữ runtime state.
 
 ### `core/state.py`
 
@@ -118,7 +128,11 @@ Các nhóm dữ liệu chính:
 - markers: `start_cell`, `end_cell`, `checkpoint_cell`
 - search state: `vis_cells`, `front_cells`, `path_cells`, `came_from`
 - execution state: `running`, `paused`, `finished`, `alg_gen`, `speed`
-- step state: `step_history`, `step_ptr`
+- step state: `step_history`, `step_ptr`, `step_history_gen_base`
+- race state: `state.race`
+- snapshot state khi đổi tab: `viz_snapshot`
+
+Toàn bộ runtime state đang nằm trong một singleton process-wide.
 
 ### `core/grid.py`
 
@@ -129,18 +143,16 @@ Chứa:
 - encode grid cho frontend: `build_grid_array`
 - maze / terrain generation
 
-### `core/tree.py`
+### `core/action_handlers.py`
 
-Chuyển `state.came_from` + `state.path_cells` thành dữ liệu tree để frontend vẽ.
+Đây là nơi parse và validate payload từ `POST /api/action`.
 
-Output chính:
+Vai trò chính:
 
-- `positions`
-- `edges`
-- `bounds`
-- `start`, `end`
-- `shown`, `total`
-- `algo`
+- chia action theo nhóm `visualize`, `race`, `system`
+- chuẩn hóa error response
+- validate kiểu dữ liệu và giới hạn
+- gom action strings ở một chỗ
 
 ### `core/runner.py`
 
@@ -148,15 +160,17 @@ Output chính:
 
 Chứa:
 
-- `handle_action()` cho toàn bộ action từ frontend
-- action của visualize mode
-- action của race mode
+- state serializer cho `/api/state` và `/api/race`
+- background loop cho `Visualize`
+- background loop cho `Race`
 - checkpoint wrapper
-- algorithm thread
-- race thread
-- các hàm serialize state cho `/api/state` và `/api/race`
+- race checkpoint wrapper
+- helper reset runtime cho test
 
-Nói ngắn gọn: nếu frontend bấm nút gì, gần như cuối cùng sẽ đi qua `core/runner.py`.
+Nói ngắn gọn:
+
+- `core/action_handlers.py` quyết định action hợp lệ hay không
+- `core/runner.py` điều phối việc chạy thật
 
 ## Algorithms
 
@@ -164,15 +178,19 @@ Mỗi file trong `algorithms/` là một generator algorithm.
 
 Contract hiện tại:
 
-- đọc input từ `state`
+- đọc input từ `state.start_cell`, `state.end_cell`, `state.walls`, `state.terrain`
 - mỗi bước `yield (visited, frontier)`
-- khi kết thúc phải cập nhật:
+- khi thành công phải cập nhật:
   - `state.path_cells`
   - `state.stats`
   - `state.came_from`
   - `state.finished = True`
+- khi thất bại vẫn phải cập nhật:
+  - `state.stats`
+  - `state.came_from`
+  - `state.finished = True`
 
-Registry nằm trong `algorithms/__init__.py`.
+Helper finalize chung hiện nằm trong `algorithms/_contract.py`.
 
 ## Frontend
 
@@ -185,11 +203,11 @@ Một page duy nhất, gồm 2 tab:
 
 Layout `Visualize` hiện tại:
 
-- header ribbon cho controls
-- vùng làm việc chính cho grid/tree
-- sidebar bên phải cho:
+- header ribbon chỉ chứa controls chính
+- khu làm việc chính chỉ còn `grid-area`
+- sidebar phải chứa:
   - statistics
-  - nút `Show Tree`
+  - options
   - legend
 
 ### `static/js/app.js`
@@ -201,6 +219,11 @@ Shell chung:
 - tab switching
 - bootstrap frontend
 
+Frontend dùng command/query split:
+
+- query qua `GET /api/state` và `GET /api/race`
+- command qua `POST /api/action`
+
 ### `static/js/visualize.js`
 
 Chứa toàn bộ logic của tab `Visualize`:
@@ -208,17 +231,15 @@ Chứa toàn bộ logic của tab `Visualize`:
 - dropdown algorithm
 - buttons: run, step, clear, maze, reset, speed, grid size, checkpoint, terrain
 - polling `/api/state`
-- polling `/api/tree`
 - render grid canvas
-- render tree canvas
 - drag start/end/checkpoint
 - path animation
 
 Behavior UI quan trọng hiện tại:
 
-- grid luôn auto-fit, không còn zoom/pan bằng chuột
-- khi mở tree, sidebar phải tự ẩn để giao diện thoáng hơn
-- khi mở tree, view tự focus vào root trước
+- grid luôn auto-fit
+- không còn zoom/pan bằng chuột
+- khi finished vẫn giữ layout hiện tại, chỉ đổi status và stats
 
 ### `static/js/race.js`
 
@@ -229,89 +250,148 @@ Chứa logic của tab `Race`:
 - render mini mazes
 - render charts
 
-### CSS
-
-- `style.css`: base styles dùng chung
-- `visualize.css`: layout/styling riêng cho `Visualize`
-- `race.css`: layout/styling riêng cho `Race`
-
 ## API contract
 
 ### `GET /api/state`
 
-Trả về state của tab `Visualize`, gồm các field chính:
+Trả về state của tab `Visualize` với shape hiện tại:
 
-- `rows`, `cols`, `grid`
-- `running`, `paused`, `finished`
-- `step_ptr`
-- `path_cells`
-- `cur_alg`
-- `speed`
-- `stats`
-- `has_tree`, `show_tree`
-- `checkpoint`
+```json
+{
+  "rows": 30,
+  "cols": 40,
+  "grid": [],
+  "running": false,
+  "finished": false,
+  "paused": false,
+  "step_ptr": -1,
+  "path_cells": [],
+  "cur_alg": 0,
+  "speed": 20,
+  "set_mode": null,
+  "stats": {
+    "nodes": 0,
+    "path": 0,
+    "cost": 0,
+    "time": 0.0,
+    "found": null,
+    "iterations": 1,
+    "peak_memory": 0
+  },
+  "checkpoint": null
+}
+```
 
 ### `GET /api/race`
 
-Trả về state của tab `Race`, gồm:
+Trả về state của tab `Race` với shape hiện tại:
 
-- `order`
-- `running`, `paused`, `done`
-- `step_ptr`
-- `runners`
-- `results`
+```json
+{
+  "rows": 30,
+  "cols": 40,
+  "speed": 20,
+  "order": [],
+  "running": false,
+  "paused": false,
+  "done": false,
+  "step_ptr": -1,
+  "runners": {},
+  "results": null
+}
+```
 
-### `GET /api/tree`
+Khi race đã khởi tạo, mỗi runner có dạng:
 
-Trả về dữ liệu tree để render khi `show_tree = true`.
+```json
+{
+  "name": "Breadth-First Search",
+  "done": false,
+  "grid": [],
+  "path": [],
+  "stats": null
+}
+```
 
 ### `POST /api/action`
 
-Frontend gửi action string vào đây. Một số action chính:
+Frontend gửi action string vào đây.
 
-- visualize:
+Các action đang tồn tại trong code:
+
+- visualize
+  - `select_algo`
   - `run`, `step`, `step_back`, `cancel_algo`
   - `clear`, `reset`, `maze`, `weighted_maze`
   - `set_start`, `set_end`, `set_checkpoint`, `remove_checkpoint`
-  - `grid_cell`, `set_terrain`
-  - `speed`, `change_grid`, `set_grid`
-  - `toggle_tree`
-- race:
+  - `grid_cell`, `set_terrain`, `clear_terrain`
+  - `speed`, `set_mode`, `change_grid`, `set_grid`
+- race
   - `race_toggle`, `race_start`, `race_cancel`
   - `race_step`, `race_step_back`, `race_stop`
+- system
+  - `switch_tab`
+
+Không còn:
+
+- `GET /api/tree`
+- `toggle_tree`
+- `show_tree`
+- `has_tree`
+
+## Polling model
+
+Frontend hiện poll dữ liệu thay vì giữ websocket/session sync:
+
+- `visualize.js` poll `/api/state` mỗi `40ms`
+- `race.js` poll `/api/race` mỗi `40ms`
+- action mutation luôn đi qua `POST /api/action`
+
+Vì app là single-user demo, mô hình này đủ đơn giản và dễ maintain.
 
 ## Cách chạy
 
-### Development
+### macOS / Linux
 
 ```bash
+source .venv/bin/activate
 pip install -r requirements.txt
-python3 app.py
+python app.py
 ```
 
-Mặc định local dev đang bật auto-reload.
-
-Nếu muốn tắt:
+Hoặc:
 
 ```bash
-MAZE_DEBUG=0 python3 app.py
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python app.py
 ```
 
-### URL
+### Windows PowerShell
 
-```text
-http://localhost:5000
+```powershell
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python app.py
+```
+
+Hoặc:
+
+```powershell
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\python app.py
 ```
 
 ## Verify nhanh sau khi sửa
 
-### Python syntax
+### Python
 
 ```bash
-python3 -m py_compile app.py core/*.py algorithms/*.py
+source .venv/bin/activate
+python -m compileall app.py algorithms core
+python -m unittest discover -s tests -v
 ```
 
-### JS syntax
+### JavaScript
 
 ```bash
 node --check static/js/app.js
@@ -319,24 +399,17 @@ node --check static/js/visualize.js
 node --check static/js/race.js
 ```
 
-### Manual smoke test
+### Smoke test tay
 
-- Visualize:
-  - chọn thuật toán và `Run`
+- `Visualize`
+  - `Run`
   - `Pause` / `Continue`
   - `Step` / `Step Back`
-  - kéo start/end/checkpoint
-  - `Generate Maze`
-  - `Weighted Maze`
-  - `Show Tree`
-- Race:
+  - kéo thả start/end/checkpoint
+  - `Basic Maze` và `Weighted Maze`
+- `Race`
   - chọn ít nhất 2 thuật toán
   - `Race`
-  - xem panel + chart
-
-## Ghi chú bảo trì
-
-- Nếu đổi `id` trong `index.html`, phải kiểm tra lại JS bind tương ứng.
-- Nếu đổi mapping cell type trong backend, phải sửa đồng bộ frontend.
-- Nếu đổi format `/api/state`, `/api/race`, `/api/tree`, phải cập nhật frontend.
-- `core/runner.py` là file nhạy cảm nhất; thay đổi ở đây dễ ảnh hưởng cả visualize, checkpoint, race và tree.
+  - `Pause` / `Continue`
+  - `Step` / `Step Back`
+  - xem panel và chart

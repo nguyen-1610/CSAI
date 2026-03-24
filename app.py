@@ -8,7 +8,7 @@ except ImportError:
     print("Flask is required. Install with:  pip install flask")
     raise SystemExit(1)
 
-from algorithms import ALG_NAMES, ALG_FULL
+from algorithms import ALG_NAMES
 from core.runner import (
     get_race_state,
     get_visual_state,
@@ -27,8 +27,7 @@ if DEBUG_MODE:
 # ─── Routes ───────────────────────────────────────────────────
 @app.route("/")
 def index():
-    return render_template("index.html",
-                           algo_names=ALG_NAMES, algo_full=ALG_FULL)
+    return render_template("index.html", algo_names=ALG_NAMES)
 
 
 @app.route("/api/state")

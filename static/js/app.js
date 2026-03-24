@@ -2,12 +2,16 @@
 
 const App = (() => {
   const TAB_STORAGE_KEY = "maze_active_tab";
+  const uiConfig = {
+    pollIntervalMs: 40,
+    pathAnimationStepDelayMs: 18,
+    pathAnimationDurationMs: 320,
+  };
 
   const state = {
     tab: 'visualize',
     viz: null,
     race: null,
-    treeData: null,
   };
 
   const tabListeners = [];
@@ -98,6 +102,7 @@ const App = (() => {
     $,
     act,
     fitCanvas,
+    uiConfig,
     state,
     switchTab,
     onTabChange,
