@@ -43,7 +43,9 @@ def api_race():
 
 @app.route("/api/action", methods=["POST"])
 def api_action():
-    return jsonify(handle_action(request.json or {}))
+    result = handle_action(request.get_json(silent=True) or {})
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
 
 
 

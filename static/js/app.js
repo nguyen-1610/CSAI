@@ -29,11 +29,20 @@ const App = (() => {
 
   async function act(data) {
     try {
-      await fetch('/api/action', {
+      const response = await fetch('/api/action', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data),
       });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || body?.ok === false) {
+        console.warn(
+          '[api/action]',
+          data?.action || 'unknown',
+          body?.message || body?.error || `HTTP ${response.status}`,
+        );
+      }
+      return body;
     } catch (_) {}
   }
 

@@ -64,12 +64,16 @@ window.RacePage = (() => {
     };
   }
 
-  async function ensureVizState() {
-    if (!state.viz) {
-      try {
-        state.viz = await (await fetch("/api/state")).json();
-      } catch (_) {}
-    }
+  function raceGridRows() {
+    return raceState()?.rows || 28;
+  }
+
+  function raceGridCols() {
+    return raceState()?.cols || 40;
+  }
+
+  function raceSpeed() {
+    return raceState()?.speed || 20;
   }
 
   function updateRaceAnimations(idx, grid, path, gridCols) {
@@ -162,8 +166,8 @@ window.RacePage = (() => {
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const rows = state.viz?.rows || 28;
-    const cols = state.viz?.cols || 40;
+    const rows = raceGridRows();
+    const cols = raceGridCols();
     const cell = Math.max(
       2,
       Math.min(Math.floor(w / cols), Math.floor(h / rows)),
@@ -576,7 +580,7 @@ window.RacePage = (() => {
             idx,
             runnerData.grid,
             runnerData.path,
-            state.viz?.cols || 40,
+            raceGridCols(),
           );
         const badge = panel.querySelector(".panel-badge");
         if (badge && runnerData && runnerData.done && runnerData.stats) {
@@ -625,8 +629,7 @@ window.RacePage = (() => {
         idx,
         runnerData.grid,
         runnerData.path,
-        state.viz?.rows || 28,
-        state.viz?.cols || 40,
+        raceGridCols(),
       );
       drawMiniMaze(canvas, runnerData, idx);
 
@@ -684,6 +687,8 @@ window.RacePage = (() => {
       (race.step_ptr ?? -1) < 1 || race.done || race.running;
     $("race-btn-step-fwd").disabled = race.running || race.done;
     $("race-btn-cancel").classList.toggle("hidden", !raceActive && !race.done);
+    $("race-speed-val").textContent = race.speed;
+    $("race-speed-slider").value = race.speed;
 
     buildRacePanels();
 
@@ -719,7 +724,6 @@ window.RacePage = (() => {
     if (state.tab !== "race") return;
     try {
       state.race = await (await fetch("/api/race")).json();
-      await ensureVizState();
       updateUI();
       if (!raceRafId) raceRafId = requestAnimationFrame(renderRace);
     } catch (_) {}
@@ -743,13 +747,13 @@ window.RacePage = (() => {
     );
 
     $("race-btn-spd-dn").addEventListener("click", () => {
-      const v = Math.max(1, (state.viz?.speed || 20) - 1);
+      const v = Math.max(1, raceSpeed() - 1);
       $("race-speed-val").textContent = v;
       $("race-speed-slider").value = v;
       act({ action: "speed", value: v });
     });
     $("race-btn-spd-up").addEventListener("click", () => {
-      const v = Math.min(400, (state.viz?.speed || 20) + 1);
+      const v = Math.min(400, raceSpeed() + 1);
       $("race-speed-val").textContent = v;
       $("race-speed-slider").value = v;
       act({ action: "speed", value: v });
@@ -762,6 +766,9 @@ window.RacePage = (() => {
 
   function init() {
     bindUI();
+    window.App.onTabChange((tab) => {
+      if (tab === "race") poll();
+    });
     poll();
     setInterval(poll, 40);
   }

@@ -1,8 +1,8 @@
 """Configuration constants for Maze Pathfinding Visualizer."""
 
 W, H = 1600, 900
-ROWS = 28
-COLS = 40
+ROWS = 22
+COLS = 30
 PW = 340
 
 DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]

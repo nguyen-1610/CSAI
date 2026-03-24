@@ -617,7 +617,10 @@ window.VisualizePage = (() => {
 
     window.addEventListener("resize", onResize);
     window.App.onTabChange((tab) => {
-      if (tab === "visualize") onResize();
+      if (tab === "visualize") {
+        onResize();
+        poll();
+      }
     });
 
     onResize();

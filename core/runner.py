@@ -4,8 +4,8 @@ import threading
 import time
 
 from algorithms import ALGO_FUNCS, ALG_NAMES
-from core.constants import MAX_C, MAX_R, MAX_SPEED, MIN_C, MIN_R
-from core.grid import build_grid_array, generate_maze, generate_plain_terrain
+from core.action_handlers import RunnerActionHooks, dispatch_action
+from core.grid import build_grid_array
 from core.state import state
 
 
@@ -90,6 +90,9 @@ def get_race_state():
                     "stats": None,
                 }
         return {
+            "rows": state.rows,
+            "cols": state.cols,
+            "speed": state.speed,
             "order": list(race.order),
             "running": race.running,
             "paused": race.paused,
@@ -98,366 +101,6 @@ def get_race_state():
             "runners": runner_data,
             "results": [dict(item) for item in race.results] if race.done else None,
         }
-
-
-def handle_action(data):
-    with state.runtime_lock:
-        race = state.race
-        payload = data or {}
-        action = payload.get("action")
-
-        if action == "select_algo":
-            idx = int(payload.get("idx", 0))
-            if 0 <= idx < len(ALG_NAMES):
-                if state.running:
-                    state.clear_search()
-                state.cur_alg = idx
-
-        elif action == "run":
-            if state.running:
-                state.running = False
-                state.paused = True
-            elif state.paused:
-                if state.step_ptr < len(state.step_history) - 1:
-                    # User stepped back — rewind by recreating generator and fast-forwarding
-                    target = state.step_ptr
-                    total_calls = state.step_history_gen_base + target
-                    state.step_history = state.step_history[:target + 1]
-                    if state.alg_gen:
-                        try:
-                            state.alg_gen.close()
-                        except Exception:
-                            pass
-                    func = ALGO_FUNCS[state.cur_alg]
-                    new_gen = (lambda f=func: _checkpoint_wrap(f))() if state.checkpoint_cell else func()
-                    for _ in range(total_calls):
-                        try:
-                            next(new_gen)
-                        except StopIteration:
-                            break
-                    state.alg_gen = new_gen
-                    vis, front = state.step_history[target]
-                    state.vis_cells = set(vis)
-                    state.front_cells = set(front)
-                state.step_ptr = len(state.step_history) - 1
-                state.paused = False
-                state.running = True
-                _start_algo_thread()
-            else:
-                if state.finished:
-                    state.clear_search()
-                func = ALGO_FUNCS[state.cur_alg]
-                if state.checkpoint_cell:
-                    state.start_algorithm(lambda f=func: _checkpoint_wrap(f))
-                else:
-                    state.start_algorithm(func)
-                _start_algo_thread()
-
-        elif action == "step":
-            if not state.finished:
-                if not state.alg_gen:
-                    func = ALGO_FUNCS[state.cur_alg]
-                    if state.checkpoint_cell:
-                        state.start_algorithm(lambda f=func: _checkpoint_wrap(f))
-                    else:
-                        state.start_algorithm(func)
-                    state.running = False
-                state.running = False
-                state.paused = True
-                if state.step_ptr < len(state.step_history) - 1:
-                    state.step_ptr += 1
-                    vis, front = state.step_history[state.step_ptr]
-                    state.vis_cells = set(vis)
-                    state.front_cells = set(front)
-                elif state.alg_gen and not state.finished:
-                    if not state.step_history:
-                        state.step_history.append((set(state.vis_cells), set(state.front_cells)))
-                        state.step_ptr = 0
-                    try:
-                        vis, front = next(state.alg_gen)
-                        state.vis_cells = vis
-                        state.front_cells = front
-                        if len(state.step_history) < 2000:
-                            state.step_history.append((set(vis), set(front)))
-                            state.step_ptr = len(state.step_history) - 1
-                    except StopIteration:
-                        state.running = False
-                        state.finished = True
-
-        elif action == "step_back":
-            if not state.running and state.step_ptr > 0:
-                state.step_ptr -= 1
-                vis, front = state.step_history[state.step_ptr]
-                state.vis_cells = set(vis)
-                state.front_cells = set(front)
-
-        elif action == "cancel_algo":
-            state.clear_search()
-
-        elif action == "clear":
-            state.clear_search()
-
-        elif action == "maze":
-            _do_cancel_race()
-            state.clear_search()
-            generate_maze()
-
-        elif action == "set_checkpoint":
-            r, c = int(payload["r"]), int(payload["c"])
-            pos = (r, c)
-            if pos not in (state.start_cell, state.end_cell):
-                _do_cancel_race()
-                state.checkpoint_cell = pos
-                state.clear_search()
-
-        elif action == "remove_checkpoint":
-            _do_cancel_race()
-            state.checkpoint_cell = None
-            state.clear_search()
-
-        elif action == "reset":
-            _do_cancel_race()
-            state.clear_search()
-            state.walls.clear()
-            state.terrain.clear()
-
-        elif action == "speed":
-            state.speed = max(1, min(MAX_SPEED, int(payload.get("value", 20))))
-
-        elif action == "set_mode":
-            mode = payload.get("mode")
-            state.set_mode = mode if state.set_mode != mode else None
-
-        elif action == "set_start":
-            r, c = int(payload["r"]), int(payload["c"])
-            pos = (r, c)
-            if pos != state.end_cell and 0 <= r < state.rows and 0 <= c < state.cols:
-                _do_cancel_race()
-                state.start_cell = pos
-
-        elif action == "set_end":
-            r, c = int(payload["r"]), int(payload["c"])
-            pos = (r, c)
-            if pos != state.start_cell and 0 <= r < state.rows and 0 <= c < state.cols:
-                _do_cancel_race()
-                state.end_cell = pos
-
-        elif action == "grid_cell":
-            r, c = int(payload["r"]), int(payload["c"])
-            pos = (r, c)
-            if state.set_mode == "start":
-                state.start_cell = pos
-                state.set_mode = None
-            elif state.set_mode == "end":
-                state.end_cell = pos
-                state.set_mode = None
-            elif not state.running and pos not in (state.start_cell, state.end_cell):
-                _do_cancel_race()
-                if payload.get("remove"):
-                    state.walls.discard(pos)
-                    state.terrain.pop(pos, None)  # right-click also clears terrain
-                else:
-                    state.walls.add(pos)
-                    state.terrain.pop(pos, None)
-
-        elif action == "change_grid":
-            dr, dc = int(payload.get("dr", 0)), int(payload.get("dc", 0))
-            nr = max(MIN_R, min(MAX_R, state.rows + dr))
-            nc = max(MIN_C, min(MAX_C, state.cols + dc))
-            if nr != state.rows or nc != state.cols:
-                _do_cancel_race()
-                _resize_grid(nr, nc)
-
-        elif action == "set_grid":
-            nr = max(MIN_R, min(MAX_R, int(payload.get("rows", state.rows))))
-            nc = max(MIN_C, min(MAX_C, int(payload.get("cols", state.cols))))
-            if nr != state.rows or nc != state.cols:
-                _do_cancel_race()
-                _resize_grid(nr, nc)
-
-        elif action == "set_terrain":
-            r, c = int(payload["r"]), int(payload["c"])
-            pos = (r, c)
-            terrain_type = int(payload.get("terrain", 0))
-            if (
-                pos not in (state.start_cell, state.end_cell)
-                and pos != state.checkpoint_cell
-                and pos not in state.walls
-                and not state.running
-            ):
-                _do_cancel_race()
-                if terrain_type == 0:
-                    state.terrain.pop(pos, None)
-                else:
-                    state.terrain[pos] = terrain_type
-
-        elif action == "clear_terrain":
-            _do_cancel_race()
-            state.terrain.clear()
-
-        elif action == "weighted_maze":
-            _do_cancel_race()
-            state.clear_search()
-            generate_plain_terrain()
-
-        elif action == "race_toggle":
-            idx = int(payload.get("idx", -1))
-            if not race.running and 0 <= idx < len(ALG_NAMES):
-                if race.done:
-                    race.done = False
-                    race.results = []
-                    race.step_history = []
-                    race.step_ptr = -1
-                    race.history_gen_base = 0
-                if idx in race.order:
-                    race.order.remove(idx)
-                elif len(race.order) < 8:
-                    race.order.append(idx)
-
-        elif action == "race_start":
-            if race.running:
-                race.running = False
-                race.paused = True
-            elif race.paused and race.runners and not race.done:
-                if race.step_ptr < len(race.step_history) - 1:
-                    # User stepped back — rewind each runner's generator
-                    target = race.step_ptr
-                    total_calls = race.history_gen_base + target
-                    race.step_history = race.step_history[:target + 1]
-                    for idx in race.order:
-                        runner = race.runners.get(idx)
-                        if not runner:
-                            continue
-                        state._counter[0] = 0
-                        func = ALGO_FUNCS[idx]
-                        new_gen = _race_checkpoint_wrap(func) if state.checkpoint_cell else func()
-                        runner["done"] = False
-                        runner["path"] = []
-                        runner["stats"] = None
-                        state.clear_search()
-                        for _ in range(total_calls):
-                            try:
-                                vis, front = next(new_gen)
-                                runner["vis"] = vis
-                                runner["front"] = _copy_front(front)
-                            except StopIteration:
-                                runner["done"] = True
-                                runner["path"] = list(state.path_cells)
-                                runner["stats"] = dict(state.stats)
-                                state.clear_search()
-                                break
-                        runner["gen"] = new_gen
-                        state.clear_search()
-                    snap = race.step_history[target]
-                    for idx, (vis, front) in snap.items():
-                        runner = race.runners.get(idx)
-                        if runner:
-                            runner["vis"] = set(vis)
-                            runner["front"] = set(front)
-                race.step_ptr = len(race.step_history) - 1
-                race.paused = False
-                race.running = True
-                race.thread = threading.Thread(target=_race_loop, daemon=True)
-                race.thread.start()
-            elif len(race.order) >= 2:
-                _start_race()
-
-        elif action == "race_cancel":
-            _do_cancel_race()
-
-        elif action == "race_step":
-            if len(race.order) >= 2:
-                if not race.runners:
-                    _init_race()
-                race.running = False
-                race.paused = True
-                if race.step_ptr < len(race.step_history) - 1:
-                    race.step_ptr += 1
-                    snap = race.step_history[race.step_ptr]
-                    for idx, (vis, front) in snap.items():
-                        runner = race.runners.get(idx)
-                        if runner:
-                            runner["vis"] = set(vis)
-                            runner["front"] = set(front)
-                elif not race.done:
-                    if not race.step_history:
-                        baseline = {
-                            idx: (set(race.runners[idx]["vis"]), set(race.runners[idx]["front"]))
-                            for idx in race.order
-                            if race.runners.get(idx)
-                        }
-                        race.step_history.append(baseline)
-                        race.step_ptr = 0
-                    snap = {}
-                    for idx in race.order:
-                        runner = race.runners.get(idx)
-                        if not runner or runner["done"]:
-                            snap[idx] = (
-                                set(runner["vis"] if runner else []),
-                                set(runner["front"] if runner else []),
-                            )
-                            continue
-                        try:
-                            vis, front = next(runner["gen"])
-                            runner["vis"] = vis
-                            runner["front"] = _copy_front(front)
-                            snap[idx] = (set(vis), set(runner["front"]))
-                        except StopIteration:
-                            runner["done"] = True
-                            runner["path"] = list(state.path_cells)
-                            runner["stats"] = dict(state.stats)
-                            state.clear_search()
-                            snap[idx] = (set(runner["vis"]), set())
-                    if len(race.step_history) < 2000:
-                        race.step_history.append(snap)
-                    else:
-                        race.step_history = race.step_history[500:]
-                        race.step_history.append(snap)
-                    race.step_ptr = len(race.step_history) - 1
-                    if all(race.runners.get(i, {}).get("done", False) for i in race.order):
-                        race.done = True
-                        race.running = False
-                        race.results = _build_race_results()
-
-        elif action == "race_step_back":
-            if race.step_ptr > 0:
-                race.step_ptr -= 1
-                snap = race.step_history[race.step_ptr]
-                for idx, (vis, front) in snap.items():
-                    runner = race.runners.get(idx)
-                    if runner:
-                        runner["vis"] = set(vis)
-                        runner["front"] = set(front)
-
-        elif action == "race_stop":
-            race.running = False
-            race.done = True
-            race.results = _build_race_results()
-
-        elif action == "switch_tab":
-            tab_to = payload.get("tab")
-            if tab_to == "race":
-                state.viz_snapshot = {
-                    "path_cells": list(state.path_cells),
-                    "vis_cells": set(state.vis_cells),
-                    "front_cells": set(state.front_cells),
-                    "came_from": dict(state.came_from),
-                    "stats": dict(state.stats),
-                    "finished": state.finished,
-                }
-            elif tab_to == "visualize" and state.viz_snapshot is not None:
-                state.path_cells = state.viz_snapshot["path_cells"]
-                state.vis_cells = state.viz_snapshot["vis_cells"]
-                state.front_cells = state.viz_snapshot["front_cells"]
-                state.came_from = state.viz_snapshot["came_from"]
-                state.stats = state.viz_snapshot["stats"]
-                state.finished = state.viz_snapshot["finished"]
-                state.running = False
-                state.paused = False
-                state.alg_gen = None
-                state.viz_snapshot = None
-
-        return {"ok": True}
 
 
 def _race_checkpoint_wrap(algo_func):
@@ -652,6 +295,15 @@ def _start_algo_thread():
         state.algo_thread.start()
 
 
+def _start_race_thread():
+    with state.runtime_lock:
+        race = state.race
+        if race.thread and race.thread.is_alive():
+            return
+        race.thread = threading.Thread(target=_race_loop, daemon=True)
+        race.thread.start()
+
+
 def _algo_loop():
     with state.runtime_lock:
         # Record initial state for fresh runs so history[i] == after i gen calls
@@ -723,8 +375,7 @@ def _start_race():
         race = state.race
         race.running = True
         race.paused = False
-        race.thread = threading.Thread(target=_race_loop, daemon=True)
-        race.thread.start()
+        _start_race_thread()
 
 
 def _race_loop():
@@ -789,3 +440,25 @@ def _race_loop():
     with state.runtime_lock:
         if state.race.thread is threading.current_thread():
             state.race.thread = None
+
+
+def _action_hooks():
+    return RunnerActionHooks(
+        build_race_results=_build_race_results,
+        cancel_race=_do_cancel_race,
+        checkpoint_wrap=_checkpoint_wrap,
+        copy_front=_copy_front,
+        init_race=_init_race,
+        race_checkpoint_wrap=_race_checkpoint_wrap,
+        resize_grid=_resize_grid,
+        start_algo_thread=_start_algo_thread,
+        start_race=_start_race,
+        start_race_thread=_start_race_thread,
+    )
+
+
+def handle_action(data):
+    """Primary `/api/action` dispatcher used by the Flask route."""
+    with state.runtime_lock:
+        return dispatch_action(data, _action_hooks())
+

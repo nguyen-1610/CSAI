@@ -17,12 +17,12 @@ class MazeApiBaselineTests(unittest.TestCase):
     def tearDown(self):
         reset_runtime_state()
 
-    def post_action(self, **payload):
+    def post_action(self, expected_status=200, expected_ok=True, **payload):
         response = self.client.post("/api/action", json=payload)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, expected_status)
         body = response.get_json()
         self.assertIsNotNone(body)
-        self.assertTrue(body.get("ok"))
+        self.assertEqual(body.get("ok"), expected_ok)
         return body
 
     def get_visual_state(self):
@@ -98,8 +98,22 @@ class MazeApiBaselineTests(unittest.TestCase):
 
         self.assertEqual(
             set(state.keys()),
-            {"order", "running", "paused", "done", "step_ptr", "runners", "results"},
+            {
+                "rows",
+                "cols",
+                "speed",
+                "order",
+                "running",
+                "paused",
+                "done",
+                "step_ptr",
+                "runners",
+                "results",
+            },
         )
+        self.assertGreater(state["rows"], 0)
+        self.assertGreater(state["cols"], 0)
+        self.assertGreater(state["speed"], 0)
         self.assertEqual(state["order"], [])
         self.assertEqual(state["runners"], {})
         self.assertIsNone(state["results"])
@@ -109,6 +123,48 @@ class MazeApiBaselineTests(unittest.TestCase):
         state = self.get_visual_state()
 
         self.assertEqual(state["speed"], 123)
+
+    def test_unknown_action_returns_error_details(self):
+        body = self.post_action(
+            expected_status=400,
+            expected_ok=False,
+            action="nope",
+        )
+
+        self.assertEqual(body["error"], "unknown_action")
+        self.assertEqual(body["action"], "nope")
+
+    def test_invalid_payload_returns_error_details(self):
+        body = self.post_action(
+            expected_status=400,
+            expected_ok=False,
+            action="set_start",
+            r="bad",
+            c=0,
+        )
+
+        self.assertEqual(body["error"], "invalid_payload")
+        self.assertEqual(body["action"], "set_start")
+
+    def test_race_start_requires_two_algorithms(self):
+        body = self.post_action(
+            expected_status=400,
+            expected_ok=False,
+            action="race_start",
+        )
+
+        self.assertEqual(body["error"], "action_rejected")
+        self.assertEqual(body["action"], "race_start")
+
+    def test_race_state_reflects_grid_shape_and_speed(self):
+        self.post_action(action="set_grid", rows=7, cols=9)
+        self.post_action(action="speed", value=77)
+
+        race = self.get_race_state()
+
+        self.assertEqual(race["rows"], 7)
+        self.assertEqual(race["cols"], 9)
+        self.assertEqual(race["speed"], 77)
 
     def test_set_start_end_and_grid_cell_actions_update_grid(self):
         self.configure_small_grid()
@@ -190,6 +246,25 @@ class MazeApiBaselineTests(unittest.TestCase):
         self.assertFalse(after["paused"])
         self.assertEqual(after["path_cells"], before["path_cells"])
         self.assertEqual(after["stats"], before["stats"])
+
+    def test_switch_tab_discards_unfinished_visual_session(self):
+        self.configure_small_grid()
+
+        self.post_action(action="step")
+        before = self.get_visual_state()
+        self.assertTrue(before["paused"])
+        self.assertGreaterEqual(before["step_ptr"], 1)
+
+        self.post_action(action="switch_tab", tab="race")
+        self.post_action(action="switch_tab", tab="visualize")
+        after = self.get_visual_state()
+
+        self.assertFalse(after["running"])
+        self.assertFalse(after["paused"])
+        self.assertFalse(after["finished"])
+        self.assertEqual(after["step_ptr"], -1)
+        self.assertEqual(after["path_cells"], [])
+        self.assertIsNone(after["stats"]["found"])
 
 
 if __name__ == "__main__":

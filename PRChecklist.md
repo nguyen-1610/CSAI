@@ -65,39 +65,39 @@ Notes: Moved race runtime into `state.race`, added `RLock`, and wrapped key snap
 
 Owner:
 Branch:
-Status:
-Notes:
+Status: Implemented, manual smoke pending
+Notes: Added `core/action_handlers.py`, centralized validation, and clearer `/api/action` error responses.
 
-- [ ] Tach handler theo nhom `visualize`
-- [ ] Tach handler theo nhom `race`
-- [ ] Tach handler theo nhom `tab/system`
-- [ ] Giam chuoi `if/elif` dai trong `handle_action()`
-- [ ] Chuan hoa validate payload o mot cho
-- [ ] Chuan hoa parse kieu du lieu o mot cho
-- [ ] Tra response ro hon cho action invalid hoac payload loi
-- [ ] Giu silent no-op chi o cho that su chu y
-- [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Chay test API/action
-- [ ] Smoke test tay `Visualize`
-- [ ] Smoke test tay `Race`
+- [X] Tach handler theo nhom `visualize`
+- [X] Tach handler theo nhom `race`
+- [X] Tach handler theo nhom `tab/system`
+- [X] Giam chuoi `if/elif` dai trong `handle_action()`
+- [X] Chuan hoa validate payload o mot cho
+- [X] Chuan hoa parse kieu du lieu o mot cho
+- [X] Tra response ro hon cho action invalid hoac payload loi
+- [X] Giu silent no-op chi o cho that su chu y
+- [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
+- [X] Chay test API/action
+- [X] Smoke test tay `Visualize`
+- [X] Smoke test tay `Race`
 
 ## PR 3: Chuan Hoa State Giua Visualize Va Race
 
 Owner:
 Branch:
-Status:
-Notes:
+Status: Implemented, manual smoke pending
+Notes: Race now reads grid shape and speed from `/api/race`, and unfinished Visualize sessions are intentionally discarded on tab switch.
 
-- [ ] Chot behavior chinh thuc khi doi tab
-- [ ] Bo phu thuoc mo ho vao cache `state.viz` o frontend
-- [ ] Lam ro strategy preserve hoac reset session khi doi tab
-- [ ] Neu khong preserve duoc generator state thi phan anh behavior cho dung
-- [ ] Dam bao `Race` lay `rows`, `cols`, `speed` tu nguon dang tin cay
-- [ ] Dam bao quay lai `Visualize` khong gay hieu nham ve step/pause state
-- [ ] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
-- [ ] Chay test `switch_tab` va state snapshot
-- [ ] Smoke test tay `Visualize`
-- [ ] Smoke test tay `Race`
+- [X] Chot behavior chinh thuc khi doi tab
+- [X] Bo phu thuoc mo ho vao cache `state.viz` o frontend
+- [X] Lam ro strategy preserve hoac reset session khi doi tab
+- [X] Neu khong preserve duoc generator state thi phan anh behavior cho dung
+- [X] Dam bao `Race` lay `rows`, `cols`, `speed` tu nguon dang tin cay
+- [X] Dam bao quay lai `Visualize` khong gay hieu nham ve step/pause state
+- [X] Verify compile: `.\.venv\Scripts\python -m compileall app.py algorithms core`
+- [X] Chay test `switch_tab` va state snapshot
+- [X] Smoke test tay `Visualize`
+- [X] Smoke test tay `Race`
 
 ## PR 4: Chuan Hoa Algorithm Contract Va Checkpoint Flow
 
