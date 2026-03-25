@@ -306,6 +306,36 @@
 }
 
 .cp-icon,
+.gl-dot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.cp-icon::before,
+.gl-dot::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: rgba(255, 248, 240, 0.96);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.cp-icon::after,
+.gl-start::after,
+.gl-end::after,
+.gl-checkpoint::after {
+  content: "";
+  position: absolute;
+  inset: 1.75px;
+  border: 1px solid rgba(255, 248, 240, 0.78);
+  border-radius: 3.5px;
+  z-index: 1;
+}
+
+.cp-icon,
 .gl-checkpoint,
 .gl-path {
   background: #c59b49;
@@ -373,8 +403,27 @@
   background: #0e7490;
 }
 
+.gl-start::before {
+  width: 4px;
+  height: 6px;
+  clip-path: polygon(0 0, 0 100%, 100% 50%);
+}
+
 .gl-end {
   background: #a44a3f;
+}
+
+.gl-end::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 1.5px;
+}
+
+.cp-icon::before,
+.gl-checkpoint::before {
+  width: 5px;
+  height: 5px;
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .gl-wall {
