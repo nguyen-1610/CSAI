@@ -4,15 +4,15 @@ window.RacePage = (() => {
   const CELL_C = [
     "#FDFBF7",
     "#1F2A36",
-    "#0F766E",
+    "#0E7490",
     "#A44A3F",
     "#6F85A5",
     "#8D6C52",
     "#C59B49",
     "#D8B56A",
-    "#4D7B9D",
-    "#7A6244",
-    "#B3BB57",
+    "#4A86B8",
+    "#725B67",
+    "#9BB74A",
   ];
   const BAR_PAL = [
     "#2E5B9A",
@@ -55,6 +55,8 @@ window.RacePage = (() => {
   const GRID_LINE_MINOR = "rgba(31, 42, 54, 0.1)";
   const GRID_LINE_MAJOR = "rgba(39, 76, 119, 0.16)";
   const GRID_FRAME = "rgba(31, 42, 54, 0.16)";
+  const MARKER_LINE = "rgba(255, 248, 240, 0.9)";
+  const MARKER_FILL = "rgba(255, 248, 240, 0.96)";
   const BADGE_SUCCESS_BG = "#2F6B4F";
   const BADGE_FAILURE_BG = "#A44A3F";
 
@@ -115,6 +117,65 @@ window.RacePage = (() => {
     } else {
       ctx.fillRect(bx, by, size, size);
     }
+    ctx.restore();
+  }
+
+  function drawMarkerAccent(ctx, x, y, cell, type) {
+    if (type !== 2 && type !== 3 && type !== 7) return;
+
+    ctx.save();
+
+    if (cell >= 8) {
+      const inset = Math.max(0.9, cell * 0.16);
+      const size = Math.max(2, cell - inset * 2);
+      ctx.strokeStyle = MARKER_LINE;
+      ctx.lineWidth = Math.max(0.9, cell * 0.06);
+      ctx.beginPath();
+      ctx.roundRect(
+        x + inset,
+        y + inset,
+        size,
+        size,
+        Math.max(1.8, size * 0.2),
+      );
+      ctx.stroke();
+    }
+
+    if (cell >= 14) {
+      const cx = x + cell / 2;
+      const cy = y + cell / 2;
+      const symbolSize = cell * 0.36;
+      const half = symbolSize / 2;
+
+      ctx.fillStyle = MARKER_FILL;
+      ctx.beginPath();
+
+      if (type === 2) {
+        ctx.moveTo(cx - half * 0.55, cy - half);
+        ctx.lineTo(cx - half * 0.55, cy + half);
+        ctx.lineTo(cx + half * 0.9, cy);
+        ctx.closePath();
+      } else if (type === 3) {
+        const inset = symbolSize * 0.1;
+        const size = symbolSize - inset;
+        ctx.roundRect(
+          cx - size / 2,
+          cy - size / 2,
+          size,
+          size,
+          Math.max(1.4, size * 0.2),
+        );
+      } else {
+        ctx.moveTo(cx, cy - half);
+        ctx.lineTo(cx + half, cy);
+        ctx.lineTo(cx, cy + half);
+        ctx.lineTo(cx - half, cy);
+        ctx.closePath();
+      }
+
+      ctx.fill();
+    }
+
     ctx.restore();
   }
 
@@ -699,6 +760,8 @@ window.RacePage = (() => {
           ctx.fillStyle = CELL_C[t] || CELL_C[0];
           ctx.fillRect(x, y, cell, cell);
         }
+
+        drawMarkerAccent(ctx, x, y, cell, t);
 
         if (cell >= 4) {
           ctx.strokeStyle = GRID_LINE_MINOR;

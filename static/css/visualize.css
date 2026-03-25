@@ -329,17 +329,17 @@
 
 .t-dot-grass,
 .gl-grass {
-  background: #b3bb57;
+  background: #9bb74a;
 }
 
 .t-dot-swamp,
 .gl-swamp {
-  background: #7a6244;
+  background: #725b67;
 }
 
 .t-dot-water,
 .gl-water {
-  background: #4d7b9d;
+  background: #4a86b8;
 }
 
 .option-note {
@@ -370,7 +370,7 @@
 }
 
 .gl-start {
-  background: #0f766e;
+  background: #0e7490;
 }
 
 .gl-end {
