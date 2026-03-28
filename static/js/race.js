@@ -66,29 +66,6 @@ window.RacePage = (() => {
     return state.race;
   }
 
-  function updateRaceHeaderMetrics() {
-    const header = document.querySelector(".header");
-    if (!header) return;
-    document.documentElement.style.setProperty(
-      "--race-header-height",
-      `${header.offsetHeight}px`,
-    );
-  }
-
-  function getRaceHeaderHideThreshold() {
-    const header = document.querySelector(".header");
-    if (!header) return 96;
-    return Math.max(96, Math.min(160, Math.round(header.offsetHeight * 0.45)));
-  }
-
-  function syncRaceHeaderVisibility() {
-    const isRaceTab = state.tab === "race";
-    const content = $("content-race");
-    const shouldHide =
-      isRaceTab && content && content.scrollTop > getRaceHeaderHideThreshold();
-    document.body.classList.toggle("race-scrolled", !!shouldHide);
-  }
-
   function setText(id, value) {
     const el = $(id);
     if (el) el.textContent = value;
@@ -1825,26 +1802,15 @@ window.RacePage = (() => {
     bindUI();
     window.addEventListener("resize", () => {
       refreshRaceViewport(true);
-      updateRaceHeaderMetrics();
-      syncRaceHeaderVisibility();
       if (state.tab === "race") poll();
     });
     window.visualViewport?.addEventListener("resize", () => {
       refreshRaceViewport(true);
-      updateRaceHeaderMetrics();
-      syncRaceHeaderVisibility();
       if (state.tab === "race") poll();
     });
-    $("content-race").addEventListener("scroll", syncRaceHeaderVisibility, {
-      passive: true,
-    });
     window.App.onTabChange((tab) => {
-      updateRaceHeaderMetrics();
-      syncRaceHeaderVisibility();
       if (tab === "race") poll();
     });
-    updateRaceHeaderMetrics();
-    syncRaceHeaderVisibility();
     poll();
     setInterval(poll, uiConfig.pollIntervalMs);
   }

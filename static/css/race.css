@@ -3,7 +3,7 @@
 }
 
 #content-race {
-  overflow-y: auto;
+  overflow: visible;
 }
 
 #ribbon-race {
