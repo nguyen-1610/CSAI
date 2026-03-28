@@ -1,7 +1,7 @@
 """Configuration constants for Maze Pathfinding Visualizer."""
 
 W, H = 1600, 900
-ROWS = 22
+ROWS = 20
 COLS = 30
 PW = 340
 DEFAULT_SPEED = 20
