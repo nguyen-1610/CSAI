@@ -5,6 +5,9 @@ from algorithms._contract import finalize_failure, finalize_success
 from core.grid import get_neighbors, path_cost, reconstruct_path
 from core.state import state
 
+# Push order for LIFO stack → pop (explore) order: RIGHT, DOWN, LEFT, UP
+_PUSH_ORDER = {(-1, 0): 0, (0, -1): 1, (1, 0): 2, (0, 1): 3}
+
 
 def algo_dfs():
     s, e = state.start_cell, state.end_cell
@@ -38,10 +41,10 @@ def algo_dfs():
             )
             return
 
-        for nb in get_neighbors(*curr):
+        for nb in sorted(get_neighbors(*curr),
+                        key=lambda n: _PUSH_ORDER[(n[0] - curr[0], n[1] - curr[1])]):
             if nb not in visited:
-                if nb not in came_from:
-                    came_from[nb] = curr
+                came_from[nb] = curr
                 stack.append(nb)
 
         peak_mem = max(peak_mem, len(came_from) + len(stack))
