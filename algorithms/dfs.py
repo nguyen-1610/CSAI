@@ -14,6 +14,7 @@ def algo_dfs():
     elapsed = 0.0
     t_step = time.perf_counter()
     stack = deque([s])
+    pending = {s}
     came_from = {s: None}
     visited = set()
     peak_mem = 1
@@ -24,6 +25,7 @@ def algo_dfs():
 
     while stack:
         curr = stack.pop()
+        pending.discard(curr)
         if curr in visited:
             continue
         visited.add(curr)
@@ -41,11 +43,17 @@ def algo_dfs():
             )
             return
 
-        for nb in sorted(get_neighbors(*curr),
-                        key=lambda n: _PUSH_ORDER[(n[0] - curr[0], n[1] - curr[1])]):
-            if nb not in visited:
-                came_from[nb] = curr
-                stack.append(nb)
+        for nb in sorted(
+            get_neighbors(*curr),
+            key=lambda n: _PUSH_ORDER[(n[0] - curr[0], n[1] - curr[1])],
+        ):
+            if nb in visited:
+                continue
+            came_from[nb] = curr
+            if nb in pending:
+                stack.remove(nb)
+            stack.append(nb)
+            pending.add(nb)
 
         peak_mem = max(peak_mem, len(came_from) + len(stack))
         elapsed += time.perf_counter() - t_step

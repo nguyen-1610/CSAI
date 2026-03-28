@@ -95,6 +95,46 @@ class AlgorithmContractTests(unittest.TestCase):
                 self.assertEqual(state.stats["cost"], 0)
                 self.assertEqual(state.path_cells, [start])
 
+    def test_dfs_never_yields_visited_cells_inside_frontier(self):
+        self.configure_grid(
+            5,
+            5,
+            (0, 0),
+            (4, 4),
+            walls={(2, 4), (3, 1), (1, 4), (2, 3), (0, 2), (3, 2)},
+        )
+
+        for step, (visited, frontier) in enumerate(algo_dfs(), start=1):
+            self.assertTrue(
+                set(visited).isdisjoint(frontier),
+                f"DFS yielded overlapping visited/frontier cells at step {step}",
+            )
+
+    def test_dfs_keeps_snake_path_shape_when_reaching_a_pending_cell(self):
+        self.configure_grid(4, 4, (0, 0), (1, 0))
+        self.drain(algo_dfs())
+        self.assertEqual(
+            state.path_cells,
+            [
+                (0, 0),
+                (0, 1),
+                (0, 2),
+                (0, 3),
+                (1, 3),
+                (2, 3),
+                (3, 3),
+                (3, 2),
+                (3, 1),
+                (3, 0),
+                (2, 0),
+                (2, 1),
+                (2, 2),
+                (1, 2),
+                (1, 1),
+                (1, 0),
+            ],
+        )
+
     def test_checkpoint_wrap_success_keeps_full_contract(self):
         self.configure_grid(5, 5, (0, 0), (4, 4), checkpoint=(0, 2))
         self.drain(_checkpoint_wrap(algo_bfs))
@@ -125,3 +165,6 @@ class AlgorithmContractTests(unittest.TestCase):
         self.assertEqual(state.stats["path"], 0)
         self.assertEqual(state.path_cells, [])
         self.assertGreater(state.stats["iterations"], 0)
+
+
+
