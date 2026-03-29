@@ -18,16 +18,24 @@ def algo_idastar():
 
     threshold = heuristic(s, e)
     iterations = 0
+    previous_threshold_had_visible_cells = False
 
     while True:
         iterations += 1
         min_exceeded = float("inf")
         found = False
         came_from = {s: None}
+        iter_visited = {s}
         path_set = {s}
 
         init_children = [nb for nb in get_neighbors(*s) if nb not in path_set]
         stack = [(s, 0, 0, init_children)]
+
+        # Each threshold pass is a fresh depth-first walk with a larger f-bound.
+        if previous_threshold_had_visible_cells:
+            elapsed += time.perf_counter() - t_step
+            yield set(), set()
+            t_step = time.perf_counter()
 
         while stack:
             node, g, child_idx, children = stack[-1]
@@ -52,11 +60,12 @@ def algo_idastar():
 
             came_from[nb] = node
             total_visited.add(nb)
+            iter_visited.add(nb)
             path_set.add(nb)
             peak_mem = max(peak_mem, len(path_set))
 
             elapsed += time.perf_counter() - t_step
-            yield total_visited.copy(), set()
+            yield iter_visited.copy(), path_set.copy()
             t_step = time.perf_counter()
 
             if nb == e:
@@ -68,6 +77,8 @@ def algo_idastar():
 
         if found:
             path = reconstruct_path(came_from, e)
+            state.vis_cells = total_visited.copy()
+            state.front_cells = set()
             finalize_success(
                 path,
                 came_from,
@@ -79,14 +90,19 @@ def algo_idastar():
             )
             return
 
+        previous_threshold_had_visible_cells = len(iter_visited) > 1
+        if previous_threshold_had_visible_cells:
+            elapsed += time.perf_counter() - t_step
+            yield iter_visited.copy(), set()
+            t_step = time.perf_counter()
+
         if min_exceeded == float("inf"):
             break
 
         threshold = min_exceeded
-        elapsed += time.perf_counter() - t_step
-        yield total_visited.copy(), set()
-        t_step = time.perf_counter()
 
+    state.vis_cells = total_visited.copy()
+    state.front_cells = set()
     finalize_failure(
         came_from,
         len(total_visited),
