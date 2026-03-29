@@ -452,10 +452,13 @@ def _race_loop():
                         snap[idx] = (set(vis), set(runner["front"]))
                     except StopIteration:
                         runner["done"] = True
+                        if state.vis_cells or state.front_cells:
+                            runner["vis"] = set(state.vis_cells)
+                            runner["front"] = set(state.front_cells)
                         runner["path"] = list(state.path_cells)
                         runner["stats"] = dict(state.stats)
                         state.clear_search()
-                        snap[idx] = (set(runner["vis"]), set())
+                        snap[idx] = (set(runner["vis"]), set(runner["front"]))
                     except Exception as exc:
                         logger.exception("Race runner failed for %s: %s", ALG_NAMES[idx], exc)
                         runner["done"] = True

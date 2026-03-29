@@ -62,7 +62,15 @@ window.RacePage = (() => {
   const BADGE_SUCCESS_BG = "#2F6B4F";
   const BADGE_FAILURE_BG = "#A44A3F";
 
-  const { $, act, state, uiConfig } = window.App;
+  const {
+    $,
+    act,
+    state,
+    uiConfig,
+    hasPendingActions,
+    onActionActivity,
+    getActionEpoch,
+  } = window.App;
 
   function raceState() {
     return state.race;
@@ -1771,10 +1779,20 @@ window.RacePage = (() => {
   async function poll() {
     if (state.tab !== "race") return;
     if (pollInFlight) return;
+    if (hasPendingActions()) {
+      schedulePoll(uiConfig.pendingActionPollDelayMs);
+      return;
+    }
+    const pollActionEpoch = getActionEpoch();
     pollInFlight = true;
     try {
       refreshRaceViewport();
-      state.race = await (await fetch("/api/race")).json();
+      const nextRaceState = await (await fetch("/api/race")).json();
+      if (hasPendingActions() || getActionEpoch() !== pollActionEpoch) {
+        schedulePoll(uiConfig.pendingActionPollDelayMs);
+        return;
+      }
+      state.race = nextRaceState;
       updateUI();
       if (!raceRafId) raceRafId = requestAnimationFrame(renderRace);
     } catch (error) {
@@ -1833,6 +1851,11 @@ window.RacePage = (() => {
     window.App.onTabChange((tab) => {
       if (tab === "race") schedulePoll(0);
       else clearPollTimer();
+    });
+    onActionActivity((pendingCount) => {
+      if (pendingCount === 0 && state.tab === "race" && !pollInFlight) {
+        schedulePoll(0);
+      }
     });
     if (state.tab === "race") schedulePoll(0);
   }

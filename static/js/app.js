@@ -4,6 +4,7 @@ const App = (() => {
   const TAB_STORAGE_KEY = "maze_active_tab";
   const uiConfig = {
     pollIntervalMs: 40,
+    pendingActionPollDelayMs: 60,
     pathAnimationStepDelayMs: 12,
     pathAnimationDurationMs: 420,
     speedMin: 1,
@@ -17,8 +18,16 @@ const App = (() => {
   };
 
   const tabListeners = [];
+  const actionListeners = [];
+  let actionQueue = Promise.resolve();
+  let pendingActions = 0;
+  let actionEpoch = 0;
 
   const $ = id => document.getElementById(id);
+
+  function emitActionActivity() {
+    actionListeners.forEach(listener => listener(pendingActions));
+  }
 
   function fitCanvas(canvas, parent) {
     const dpr = devicePixelRatio || 1;
@@ -33,7 +42,7 @@ const App = (() => {
     return ctx;
   }
 
-  async function act(data) {
+  async function postAction(data) {
     try {
       const response = await fetch('/api/action', {
         method: 'POST',
@@ -52,6 +61,23 @@ const App = (() => {
     } catch (error) {
       console.warn('[api/action] request failed', data?.action || 'unknown', error);
     }
+  }
+
+  function act(data) {
+    actionEpoch += 1;
+    pendingActions += 1;
+    emitActionActivity();
+
+    const task = actionQueue
+      .catch(() => null)
+      .then(() => postAction(data));
+
+    actionQueue = task.finally(() => {
+      pendingActions = Math.max(0, pendingActions - 1);
+      emitActionActivity();
+    });
+
+    return task;
   }
 
   function readSavedTab() {
@@ -89,6 +115,18 @@ const App = (() => {
     tabListeners.push(listener);
   }
 
+  function onActionActivity(listener) {
+    actionListeners.push(listener);
+  }
+
+  function hasPendingActions() {
+    return pendingActions > 0;
+  }
+
+  function getActionEpoch() {
+    return actionEpoch;
+  }
+
   function initTabs() {
     document.querySelectorAll('.tab').forEach(button => {
       button.addEventListener('click', () => switchTab(button.dataset.tab));
@@ -111,6 +149,9 @@ const App = (() => {
     state,
     switchTab,
     onTabChange,
+    onActionActivity,
+    hasPendingActions,
+    getActionEpoch,
     init,
   };
 })();

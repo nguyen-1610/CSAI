@@ -135,6 +135,43 @@ class AlgorithmContractTests(unittest.TestCase):
             ],
         )
 
+    def test_iddfs_resets_visualization_between_depth_limits(self):
+        self.configure_grid(1, 3, (0, 0), (0, 2))
+        steps = list(algo_iddfs())
+
+        self.assert_full_contract(True)
+        self.assertEqual(state.stats["iterations"], 3)
+        self.assertGreater(len(steps), 2)
+        self.assertIn((0, 1), steps[0][0])
+
+        reset_idx = next(
+            (
+                i
+                for i, (visited, frontier) in enumerate(steps)
+                if not visited and not frontier
+            ),
+            None,
+        )
+        self.assertIsNotNone(reset_idx)
+        self.assertGreater(reset_idx, 0)
+        self.assertIn((0, 1), steps[reset_idx + 1][0])
+
+    def test_iddfs_adjacent_goal_requires_second_iteration(self):
+        self.configure_grid(1, 2, (0, 0), (0, 1))
+        self.drain(algo_iddfs())
+
+        self.assert_full_contract(True)
+        self.assertEqual(state.stats["iterations"], 2)
+
+    def test_iddfs_success_summarizes_total_explored_state(self):
+        self.configure_grid(5, 5, (0, 0), (2, 2))
+        self.drain(algo_iddfs())
+
+        self.assert_full_contract(True)
+        self.assertTrue(set(state.path_cells).issubset(state.vis_cells))
+        self.assertIn((0, 4), state.vis_cells)
+        self.assertEqual(state.front_cells, set())
+
     def test_checkpoint_wrap_success_keeps_full_contract(self):
         self.configure_grid(5, 5, (0, 0), (4, 4), checkpoint=(0, 2))
         self.drain(_checkpoint_wrap(algo_bfs))

@@ -588,10 +588,13 @@ def handle_race_step(_payload, hooks):
             snap[idx] = (set(vis), set(runner["front"]))
         except StopIteration:
             runner["done"] = True
+            if state.vis_cells or state.front_cells:
+                runner["vis"] = set(state.vis_cells)
+                runner["front"] = set(state.front_cells)
             runner["path"] = list(state.path_cells)
             runner["stats"] = dict(state.stats)
             state.clear_search()
-            snap[idx] = (set(runner["vis"]), set())
+            snap[idx] = (set(runner["vis"]), set(runner["front"]))
 
     if len(race.step_history) < STEP_HISTORY_LIMIT:
         race.step_history.append(snap)

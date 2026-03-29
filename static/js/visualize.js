@@ -53,7 +53,15 @@ window.VisualizePage = (() => {
   let pollInFlight = false;
   const knownMarkers = { start: null, end: null, checkpoint: null };
 
-  const { $, act, state, uiConfig } = window.App;
+  const {
+    $,
+    act,
+    state,
+    uiConfig,
+    hasPendingActions,
+    onActionActivity,
+    getActionEpoch,
+  } = window.App;
 
   function vizState() {
     return state.viz;
@@ -659,10 +667,20 @@ window.VisualizePage = (() => {
   async function poll() {
     if (state.tab !== "visualize") return;
     if (pollInFlight) return;
+    if (hasPendingActions()) {
+      schedulePoll(uiConfig.pendingActionPollDelayMs);
+      return;
+    }
+    const pollActionEpoch = getActionEpoch();
     pollInFlight = true;
     try {
       refreshCanvasMetrics();
-      state.viz = await (await fetch("/api/state")).json();
+      const nextVizState = await (await fetch("/api/state")).json();
+      if (hasPendingActions() || getActionEpoch() !== pollActionEpoch) {
+        schedulePoll(uiConfig.pendingActionPollDelayMs);
+        return;
+      }
+      state.viz = nextVizState;
       if (state.viz.rows !== lastVizRows || state.viz.cols !== lastVizCols) {
         lastVizRows = state.viz.rows;
         lastVizCols = state.viz.cols;
@@ -963,6 +981,15 @@ window.VisualizePage = (() => {
         schedulePoll(0);
       } else {
         clearPollTimer();
+      }
+    });
+    onActionActivity((pendingCount) => {
+      if (
+        pendingCount === 0 &&
+        state.tab === "visualize" &&
+        !pollInFlight
+      ) {
+        schedulePoll(0);
       }
     });
 

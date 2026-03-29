@@ -38,21 +38,38 @@ def algo_iddfs():
 
     iterations = 0
 
+    previous_depth_had_visible_cells = False
+
     for depth in range(state.rows * state.cols + 1):
         iterations += 1
         came_from = {s: None}
+        iter_visited = {s}
         path_set = {s}
-        visited_at = {}
+        visited_at = {s: depth}
         found = False
-        stack = [(s, iter(get_neighbors(*s)), depth, False)]
+        stack = [(s, iter(get_neighbors(*s)), depth)]
+
+        # Each depth-limited pass restarts from a clean board in the UI.
+        if previous_depth_had_visible_cells:
+            elapsed += time.perf_counter() - t_step
+            yield set(), set()
+            t_step = time.perf_counter()
 
         while stack:
-            node, nb_iter, remaining, _ = stack[-1]
+            node, nb_iter, remaining = stack[-1]
+
+            if remaining <= 0:
+                popped_node, _, _ = stack.pop()
+                if popped_node != s:
+                    path_set.discard(popped_node)
+                    came_from.pop(popped_node, None)
+                continue
+
             nb = next(nb_iter, None)
 
             if nb is None:
-                popped_node, _, _, should_clean = stack.pop()
-                if should_clean:
+                popped_node, _, _ = stack.pop()
+                if popped_node != s:
                     path_set.discard(popped_node)
                     came_from.pop(popped_node, None)
                 continue
@@ -66,6 +83,7 @@ def algo_iddfs():
             visited_at[nb] = new_budget
 
             total_visited.add(nb)
+            iter_visited.add(nb)
             came_from[nb] = node
             path_set.add(nb)
             peak_mem = max(peak_mem, len(path_set))
@@ -74,19 +92,22 @@ def algo_iddfs():
                 found = True
                 break
 
-            if new_budget > 0:
-                stack.append((nb, iter(get_neighbors(*nb)), new_budget, True))
-
             elapsed += time.perf_counter() - t_step
-            yield total_visited.copy(), path_set.copy()
+            yield iter_visited.copy(), path_set.copy()
             t_step = time.perf_counter()
 
-            if new_budget <= 0:
+            if new_budget > 0:
+                stack.append((nb, iter(get_neighbors(*nb)), new_budget))
+            else:
                 path_set.discard(nb)
                 came_from.pop(nb, None)
 
         if found:
             path = reconstruct_path(came_from, e)
+            # Once IDDFS completes, show the full explored footprint and clear
+            # the frontier because there is no active depth-limited pass left.
+            state.vis_cells = total_visited.copy()
+            state.front_cells = set()
             finalize_success(
                 path,
                 came_from,
@@ -98,9 +119,11 @@ def algo_iddfs():
             )
             return
 
-        elapsed += time.perf_counter() - t_step
-        yield total_visited.copy(), set()
-        t_step = time.perf_counter()
+        previous_depth_had_visible_cells = len(iter_visited) > 1
+        if previous_depth_had_visible_cells:
+            elapsed += time.perf_counter() - t_step
+            yield iter_visited.copy(), set()
+            t_step = time.perf_counter()
 
     finalize_failure(
         came_from,
