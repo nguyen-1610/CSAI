@@ -2,6 +2,7 @@ import time
 from collections import deque
 
 from algorithms._contract import finalize_failure, finalize_success
+from core.constants import BIDIRECTIONAL_BACKWARD_DIRS
 from core.grid import get_neighbors, path_cost
 from core.state import state
 
@@ -53,7 +54,7 @@ def algo_bidirectional():
 
         if bwd_queue:
             curr = bwd_queue.popleft()
-            for nb in get_neighbors(*curr):
+            for nb in get_neighbors(*curr, dirs=BIDIRECTIONAL_BACKWARD_DIRS):
                 if nb not in bwd_visited:
                     bwd_visited[nb] = curr
                     bwd_queue.append(nb)

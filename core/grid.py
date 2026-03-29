@@ -10,10 +10,11 @@ def in_bounds(r, c):
     return 0 <= r < state.rows and 0 <= c < state.cols
 
 
-def get_neighbors(r, c):
+def get_neighbors(r, c, dirs=None):
+    directions = DIRS if dirs is None else dirs
     return [
         (r + dr, c + dc)
-        for dr, dc in DIRS
+        for dr, dc in directions
         if in_bounds(r + dr, c + dc) and (r + dr, c + dc) not in state.walls
     ]
 

@@ -110,6 +110,14 @@ class AlgorithmContractTests(unittest.TestCase):
                 f"DFS yielded overlapping visited/frontier cells at step {step}",
             )
 
+    def test_bidirectional_uses_mirrored_neighbor_order_for_goal_frontier(self):
+        self.configure_grid(4, 4, (1, 0), (1, 3), walls={(1, 1)})
+        self.drain(algo_bidirectional())
+        self.assertEqual(
+            state.path_cells,
+            [(1, 0), (2, 0), (2, 1), (2, 2), (1, 2), (1, 3)],
+        )
+
     def test_dfs_keeps_snake_path_shape_when_reaching_a_pending_cell(self):
         self.configure_grid(4, 4, (0, 0), (1, 0))
         self.drain(algo_dfs())
