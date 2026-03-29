@@ -17,31 +17,13 @@ def algo_iddfs():
         finalize_success([s], came_from, 1, 0, 0.0, iterations=1, peak_memory=peak_mem)
         return
 
-    reachable = {s}
-    queue = [s]
-    while queue:
-        curr = queue.pop()
-        for nb in get_neighbors(*curr):
-            if nb not in reachable:
-                reachable.add(nb)
-                queue.append(nb)
-
-    if e not in reachable:
-        finalize_failure(
-            came_from,
-            len(reachable),
-            elapsed + (time.perf_counter() - t_step),
-            iterations=1,
-            peak_memory=len(reachable),
-        )
-        return
-
     iterations = 0
 
     previous_depth_had_visible_cells = False
 
     for depth in range(state.rows * state.cols + 1):
         iterations += 1
+        prev_total_count = len(total_visited)
         came_from = {s: None}
         iter_visited = {s}
         path_set = {s}
@@ -124,6 +106,18 @@ def algo_iddfs():
             elapsed += time.perf_counter() - t_step
             yield iter_visited.copy(), set()
             t_step = time.perf_counter()
+
+        if depth > 0 and len(total_visited) == prev_total_count:
+            state.vis_cells = total_visited.copy()
+            state.front_cells = set()
+            finalize_failure(
+                came_from,
+                len(total_visited),
+                elapsed + (time.perf_counter() - t_step),
+                iterations=iterations,
+                peak_memory=peak_mem,
+            )
+            return
 
     finalize_failure(
         came_from,
