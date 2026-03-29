@@ -49,6 +49,8 @@ window.VisualizePage = (() => {
   let needsRender = true;
   let lastDpr = window.devicePixelRatio || 1;
   let gridAreaObserver = null;
+  let pollTimerId = null;
+  let pollInFlight = false;
   const knownMarkers = { start: null, end: null, checkpoint: null };
 
   const { $, act, state, uiConfig } = window.App;
@@ -639,8 +641,25 @@ window.VisualizePage = (() => {
     );
   }
 
+  function clearPollTimer() {
+    if (pollTimerId !== null) {
+      clearTimeout(pollTimerId);
+      pollTimerId = null;
+    }
+  }
+
+  function schedulePoll(delay = uiConfig.pollIntervalMs) {
+    clearPollTimer();
+    pollTimerId = window.setTimeout(() => {
+      pollTimerId = null;
+      poll();
+    }, delay);
+  }
+
   async function poll() {
     if (state.tab !== "visualize") return;
+    if (pollInFlight) return;
+    pollInFlight = true;
     try {
       refreshCanvasMetrics();
       state.viz = await (await fetch("/api/state")).json();
@@ -656,6 +675,9 @@ window.VisualizePage = (() => {
       requestRender();
     } catch (error) {
       console.warn("[visualize] poll failed", error);
+    } finally {
+      pollInFlight = false;
+      if (state.tab === "visualize") schedulePoll();
     }
   }
 
@@ -938,13 +960,14 @@ window.VisualizePage = (() => {
     window.App.onTabChange((tab) => {
       if (tab === "visualize") {
         onResize();
-        poll();
+        schedulePoll(0);
+      } else {
+        clearPollTimer();
       }
     });
 
     onResize();
-    poll();
-    setInterval(poll, uiConfig.pollIntervalMs);
+    if (state.tab === "visualize") schedulePoll(0);
     requestRender();
   }
 

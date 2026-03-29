@@ -6,7 +6,7 @@ COLS = 30
 PW = 340
 DEFAULT_SPEED = 20
 
-DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+DIRS = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 
 MAX_SPEED = 999
 MIN_R, MAX_R = 5, 50

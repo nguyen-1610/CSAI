@@ -44,6 +44,8 @@ window.RacePage = (() => {
   let raceRafId = null;
   let lastResultsSignature = null;
   let lastDpr = window.devicePixelRatio || 1;
+  let pollTimerId = null;
+  let pollInFlight = false;
 
   const PANEL_GAP = 12;
   const PANEL_MIN_VIEWPORT_H = 460;
@@ -1751,8 +1753,25 @@ window.RacePage = (() => {
     }
   }
 
+  function clearPollTimer() {
+    if (pollTimerId !== null) {
+      clearTimeout(pollTimerId);
+      pollTimerId = null;
+    }
+  }
+
+  function schedulePoll(delay = uiConfig.pollIntervalMs) {
+    clearPollTimer();
+    pollTimerId = window.setTimeout(() => {
+      pollTimerId = null;
+      poll();
+    }, delay);
+  }
+
   async function poll() {
     if (state.tab !== "race") return;
+    if (pollInFlight) return;
+    pollInFlight = true;
     try {
       refreshRaceViewport();
       state.race = await (await fetch("/api/race")).json();
@@ -1760,6 +1779,9 @@ window.RacePage = (() => {
       if (!raceRafId) raceRafId = requestAnimationFrame(renderRace);
     } catch (error) {
       console.warn("[race] poll failed", error);
+    } finally {
+      pollInFlight = false;
+      if (state.tab === "race") schedulePoll();
     }
   }
 
@@ -1809,10 +1831,10 @@ window.RacePage = (() => {
       if (state.tab === "race") poll();
     });
     window.App.onTabChange((tab) => {
-      if (tab === "race") poll();
+      if (tab === "race") schedulePoll(0);
+      else clearPollTimer();
     });
-    poll();
-    setInterval(poll, uiConfig.pollIntervalMs);
+    if (state.tab === "race") schedulePoll(0);
   }
 
   return { init };
