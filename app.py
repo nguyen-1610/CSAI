@@ -15,7 +15,13 @@ from core.runner import (
     handle_action,
 )
 
-DEBUG_MODE = os.environ.get("MAZE_DEBUG", "1") != "0"
+# Default to normal runtime; opt into debug/reload explicitly with MAZE_DEBUG=1.
+DEBUG_MODE = os.environ.get("MAZE_DEBUG", "0").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = DEBUG_MODE

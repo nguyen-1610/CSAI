@@ -1,1 +1,3 @@
-flask
+# Direct runtime dependency.
+# Flask will install its own required packages automatically.
+Flask>=3.0,<4.0

@@ -1,59 +1,100 @@
-# Maze Pathfinding Visualizer
+# Maze Pathfinding Studio
 
-Web app de visualize va so sanh cac thuat toan tim duong tren grid maze.
+Maze Pathfinding Studio is a Flask-based web application for visualizing and comparing pathfinding algorithms on a 2D grid maze. The project supports both detailed single-algorithm tracing and side-by-side algorithm comparison in the browser.
 
-## Stack hien tai
+## Main Features
 
-- Backend: Python + Flask
-- Frontend: HTML + CSS + JavaScript thuan
-- Render: Canvas API thuan
-- Giao tiep frontend/backend: polling `GET /api/state`, `GET /api/race`, va command `POST /api/action`
-- Khong dung React, Vite, Tailwind, shadcn/ui, Zustand, Recharts, FastAPI, hay websocket
+### Visualize mode
 
-Project nay la app demo single-user:
+- Run one algorithm at a time on the active grid
+- Pause, continue, step forward, and step backward
+- Drag the start node, end node, and checkpoint directly on the canvas
+- Generate a basic maze or a weighted terrain map
+- Edit walls and terrain interactively
+- View live statistics for nodes visited, path length, path cost, and runtime
 
-- uu tien code gon, de doc, de demo
-- runtime state duoc giu trong mot process
-- phu hop local demo va deploy nhe
+### Race mode
 
-## Tinh nang
+- Select multiple algorithms and run them on the same maze
+- View each runner in its own mini-maze panel
+- Compare final results in a summary table
+- Inspect additional charts for nodes, path length, cost, time, iterations, and peak memory
 
-### Tab `Visualize`
+## Implemented Algorithms
 
-- chay 1 thuat toan
-- `Run`, `Pause`, `Continue`
-- `Step`, `Step Back`
-- keo tha start, end, checkpoint
-- `Basic Maze`, `Weighted Maze`
-- weighted terrain voi grass, swamp, water
-- grid auto-fit, khong co zoom/pan bang chuot
+- Breadth-First Search
+- Depth-First Search
+- Uniform Cost Search
+- A* Search
+- Iterative Deepening DFS
+- Bidirectional BFS
+- Beam Search
+- IDA* Search
 
-### Tab `Race`
+## Weighted Terrain
 
-- chon nhieu thuat toan de chay song song
-- mini maze cho tung runner
-- bang so sanh ket qua
-- cac chart so sanh nodes, path, cost, time, iterations, memory
+The application supports three weighted terrain types:
 
-## Cai dat va chay
+- Grass: cost x2
+- Swamp: cost x5
+- Water: cost x10
 
-Repo uu tien dung virtual environment tai `.venv/`. Thu muc nay la local dev env, khong duoc commit.
+These costs affect algorithms that use path cost rather than plain path length.
 
-Neu may ban chua co `.venv`, tao no truoc:
+## Tech Stack
+
+- Backend: Python, Flask
+- Frontend: HTML, CSS, vanilla JavaScript
+- Rendering: HTML canvas
+- Communication: HTTP polling with JSON APIs
+
+The application is designed as a single-user demo app with one in-process runtime state.
+
+## Project Structure
+
+```text
+CSAI/
+|-- app.py
+|-- algorithms/
+|-- core/
+|-- static/
+|-- templates/
+|-- tests/
+|-- Architecture.md
+|-- README.md
+`-- requirements.txt
+```
+
+## Installation and Running
+
+### Main way to run the project
+
+If Python and Flask are already installed on your machine, you can run the app directly:
+
+```powershell
+pip install -r requirements.txt
+python app.py
+```
+
+Then open `http://localhost:5000`.
+
+### Optional: use a virtual environment
+
+This project can also run inside an optional virtual environment (`.venv`).
+
+To create it:
 
 ```bash
 python -m venv .venv
 ```
 
-### macOS / Linux
+Important:
 
-```bash
-source .venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
+- `.\.venv\Scripts\Activate.ps1` does not create `.venv`
+- it only activates an existing virtual environment in the current PowerShell session
+- if `.venv` does not exist yet, create it first with `python -m venv .venv`
 
-### Windows PowerShell
+### Windows PowerShell with `.venv`
 
 ```powershell
 .venv\Scripts\Activate.ps1
@@ -61,40 +102,64 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Neu khong muon activate shell, goi truc tiep interpreter trong `.venv`:
+You can also skip activation and run the virtual-environment interpreter directly:
 
 ```powershell
 .venv\Scripts\python app.py
 ```
 
-Mo `http://localhost:5000`.
+### macOS / Linux with `.venv`
 
-### Tat auto-reload
-
-```powershell
-$env:MAZE_DEBUG = "0"
-.venv\Scripts\python app.py
-```
-
-Hoac neu dang activate shell:
-
-```powershell
-$env:MAZE_DEBUG = "0"
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
 python app.py
 ```
 
-## Verify nhanh
+Activating `.venv` is recommended, but it is not strictly required.
 
-### Python
+- Use `.venv\Scripts\Activate.ps1` when you want `python` and `pip` in the current shell to point to the virtual environment automatically.
+- If `python app.py` already works for you, that means the Python interpreter you are currently using already has Flask installed.
+- If you want to avoid activation, run the app with `.venv\Scripts\python app.py` to guarantee that the project uses the virtual environment.
+
+The app runs in normal mode by default. If debug auto-reload is needed:
+
+```bash
+MAZE_DEBUG=1 python app.py
+```
+
+PowerShell:
+
+```powershell
+$env:MAZE_DEBUG = "1"
+python app.py
+```
+
+## Default Settings
+
+- Default grid size: `20 x 30`
+- Grid size range: rows `5..50`, cols `5..80`
+- Speed range: `1..999`
+- Frontend polling interval: `40 ms`
+
+## API Endpoints
+
+The frontend uses three endpoints:
+
+- `GET /api/state`
+- `GET /api/race`
+- `POST /api/action`
+
+## Verification
+
+Run the Python checks:
 
 ```bash
 python -m compileall app.py algorithms core
 python -m unittest discover -s tests -v
 ```
 
-### JavaScript
-
-Frontend khong can build step. Neu may co Node.js, co the check syntax:
+Optional JavaScript syntax check if Node.js is available:
 
 ```bash
 node --check static/js/app.js
@@ -102,31 +167,6 @@ node --check static/js/visualize.js
 node --check static/js/race.js
 ```
 
-### Smoke test tay
-
-- `Visualize`
-- chon thuat toan va bam `Run`
-- `Pause` / `Continue`
-- `Step` / `Step Back`
-- keo tha start, end, checkpoint
-- tao `Basic Maze` va `Weighted Maze`
-- `Race`
-- chon it nhat 2 thuat toan
-- bam `Race`
-- xem runner panels, result matrix, va charts
-
-## API hien tai
-
-Frontend hien dung dung 3 endpoint:
-
-- `GET /api/state`
-- `GET /api/race`
-- `POST /api/action`
-
-## Tai lieu lien quan
+## Additional Documentation
 
 - [Architecture.md](./Architecture.md)
-- [AGENTS.md](./AGENTS.md)
-- [CLAUDE.md](./CLAUDE.md)
-- [PRChecklist.md](./PRChecklist.md)
-- [RefactorPlan.md](./RefactorPlan.md)
